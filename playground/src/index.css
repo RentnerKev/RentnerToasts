@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+
+@source "../../src/**/*.{ts,tsx}";
+@source "../../dist/index.js";
+
+@theme {
+    --color-primary: #13ecd6;
+    --color-primary-hover: #0fbdaa;
+    --color-background-dark: #0f1014;
+    --color-surface-dark: #181a1f;
+    --color-input-dark: #22252b;
+    --color-border-dark: #2e323b;
+    --color-secondary-text: #9ca3af;
+
+    --font-sans: 'Inter', ui-sans-serif, system-ui;
+}
+
+@layer base {
+    body {
+        background-color: var(--color-background-dark);
+        color: #d1d5db;
+        font-family: var(--font-sans), serif;
+    }
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f1014;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2e323b;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3f4452;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #2e323b #0f1014;
+}
+
+.glow-effect {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(
+        circle,
+        var(--color-primary),
+        rgba(15, 16, 20, 0) 70%
+    );
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.15;
+
+    transition:
+        top 1.5s ease-in-out,
+        left 1.5s ease-in-out;
+    animation: glowAnimation 5s ease-in-out infinite;
+}
+
+.glow-effect-small {
+    width: 350px;
+    height: 350px;
+    opacity: 0.1;
+    animation-delay: -1.5s;
+}
+
+@keyframes glowAnimation {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    }
+    50% {
+        transform: translate(-50%, -50%) rotate(180deg) scale(1.2);
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg) scale(1);
+    }
+}

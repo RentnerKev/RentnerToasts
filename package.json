@@ -1,0 +1,75 @@
+{
+    "name": "@rentnerkev/toasts",
+    "version": "1.0.0",
+    "description": "Accessible, customizable toast notifications for React.",
+    "keywords": [
+        "react",
+        "toast",
+        "notifications",
+        "typescript",
+        "tailwindcss"
+    ],
+    "author": "RentnerKev",
+    "license": "MIT",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "type": "module",
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "sideEffects": false,
+    "scripts": {
+        "build": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test",
+        "prepare": "bun run build",
+        "pack:check": "bun pm pack --dry-run --ignore-scripts",
+        "playground:dev": "bun --cwd playground dev",
+        "playground:build": "bun --cwd playground build",
+        "lint": "oxlint .",
+        "lint:fix": "oxlint --fix .",
+        "format": "oxfmt .",
+        "format:check": "oxfmt --check .",
+        "check": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build",
+        "verify": "bun run check && bun run pack:check"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/RentnerKev/RentnerToasts.git"
+    },
+    "homepage": "https://github.com/RentnerKev/RentnerToasts#readme",
+    "bugs": {
+        "url": "https://github.com/RentnerKev/RentnerToasts/issues"
+    },
+    "publishConfig": {
+        "access": "public",
+        "registry": "https://registry.npmjs.org"
+    },
+    "peerDependencies": {
+        "lucide-react": "^1.0.0",
+        "motion": "^12.38.0 || ^13.0.0",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0"
+    },
+    "devDependencies": {
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
+        "lucide-react": "^1.46.0",
+        "motion": "^13.2.0",
+        "react": "^19.3.0",
+        "react-dom": "^19.3.0",
+        "typescript": "^7.0.2",
+        "oxfmt": "^0.68.0",
+        "oxlint": "^1.83.0"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "packageManager": "bun@1.4.0"
+}

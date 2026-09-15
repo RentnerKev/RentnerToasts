@@ -1,0 +1,12 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["helpers:pinGitHubActionDigests"],
+    "packageRules": [
+        {
+            "description": "Wait 1 day before updating npm packages",
+            "matchDatasources": ["npm"],
+            "minimumReleaseAge": "1 day",
+            "internalChecksFilter": "strict"
+        }
+    ]
+}
