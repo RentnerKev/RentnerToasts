@@ -1,0 +1,298 @@
+name: Release Changelog
+
+on:
+    release:
+        types:
+            - published
+
+concurrency:
+    group: release-changelog-${{ github.repository }}-${{ github.event.release.tag_name }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+
+jobs:
+    generate-release-notes:
+        name: Generate release notes
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+
+        steps:
+            - name: Validate release tag
+              id: release
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  node <<'NODE'
+                  const fs = require('node:fs')
+
+                  const event = JSON.parse(
+                      fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'),
+                  )
+                  const tag = event.release?.tag_name
+
+                  if (
+                      typeof tag !== 'string' ||
+                      !/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag)
+                  ) {
+                      throw new Error(`Invalid release tag: ${String(tag)}`)
+                  }
+
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\n`)
+                  NODE
+
+            - name: Checkout release tag
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ steps.release.outputs.tag }}
+                  fetch-depth: 0
+                  fetch-tags: true
+                  persist-credentials: false
+
+            - name: Verify release tag checkout
+              env:
+                  RELEASE_TAG: ${{ steps.release.outputs.tag }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  release_commit="$(git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}")"
+
+                  if [[ "$(git rev-parse HEAD)" != "$release_commit" ]]; then
+                    echo "::error title=Tag checkout mismatch::HEAD does not match the published release tag"
+                    exit 1
+                  fi
+
+            - name: Generate changelog
+              uses: orhun/git-cliff-action@3d96a18cc4ec17e9dc69ddcc424ccafaf1f78ce2 # v4.9.0
+              with:
+                  version: v2.14.1
+                  config: cliff.toml
+                  args: --verbose --current --strip header --no-exec
+                  github_token: ${{ github.token }}
+              env:
+                  OUTPUT: release-notes.md
+                  GITHUB_REPO: ${{ github.repository }}
+
+            - name: Validate generated notes
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  if [[ ! -f release-notes.md || -L release-notes.md ]]; then
+                    echo "::error title=Invalid release notes::Expected a regular release-notes.md file"
+                    exit 1
+                  fi
+
+                  if [[ ! -s release-notes.md || "$(wc -c < release-notes.md)" -gt 1000000 ]]; then
+                    echo "::error title=Invalid release notes::Release notes must contain 1 to 1,000,000 bytes"
+                    exit 1
+                  fi
+
+                  node <<'NODE'
+                  const fs = require('node:fs')
+                  const notes = fs.readFileSync('release-notes.md')
+
+                  if (notes.includes(0)) {
+                      throw new Error('Release notes must not contain NUL bytes')
+                  }
+                  NODE
+
+            - name: Store generated notes
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: release-notes-${{ github.run_id }}
+                  path: release-notes.md
+                  if-no-files-found: error
+                  retention-days: 1
+
+    update-release:
+        name: Update release changelog
+        needs: generate-release-notes
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        permissions:
+            actions: read
+            contents: write
+
+        steps:
+            - name: Validate release metadata
+              id: release
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  node <<'NODE'
+                  const fs = require('node:fs')
+
+                  const event = JSON.parse(
+                      fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'),
+                  )
+                  const release = event.release
+                  const tag = release?.tag_name
+                  const publishedAt = release?.published_at
+
+                  if (
+                      typeof tag !== 'string' ||
+                      !/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(tag)
+                  ) {
+                      throw new Error(`Invalid release tag: ${String(tag)}`)
+                  }
+
+                  if (typeof release?.prerelease !== 'boolean') {
+                      throw new Error('Release event has no valid prerelease state')
+                  }
+
+                  if (
+                      typeof publishedAt !== 'string' ||
+                      Number.isNaN(Date.parse(publishedAt))
+                  ) {
+                      throw new Error('Release event has no valid publication date')
+                  }
+
+                  const publishedDate = new Intl.DateTimeFormat('en-GB', {
+                      day: 'numeric',
+                      month: 'long',
+                      timeZone: 'UTC',
+                      year: 'numeric',
+                  }).format(new Date(publishedAt))
+
+                  fs.appendFileSync(
+                      process.env.GITHUB_OUTPUT,
+                      [
+                          `tag=${tag}`,
+                          `prerelease=${release.prerelease}`,
+                          `published_date=${publishedDate}`,
+                          '',
+                      ].join('\n'),
+                  )
+                  NODE
+
+            - name: Checkout release tag
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ steps.release.outputs.tag }}
+                  fetch-depth: 1
+                  persist-credentials: false
+
+            - name: Download generated notes
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: release-notes-${{ github.run_id }}
+                  path: release-artifact
+
+            - name: Validate downloaded notes
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  notes_path='release-artifact/release-notes.md'
+
+                  if [[ ! -f "$notes_path" || -L "$notes_path" ]]; then
+                    echo "::error title=Invalid release notes::Expected a regular release-notes.md artifact"
+                    exit 1
+                  fi
+
+                  if [[ ! -s "$notes_path" || "$(wc -c < "$notes_path")" -gt 1000000 ]]; then
+                    echo "::error title=Invalid release notes::Release notes must contain 1 to 1,000,000 bytes"
+                    exit 1
+                  fi
+
+                  node <<'NODE'
+                  const fs = require('node:fs')
+                  const notes = fs.readFileSync('release-artifact/release-notes.md')
+
+                  if (notes.includes(0)) {
+                      throw new Error('Release notes must not contain NUL bytes')
+                  }
+                  NODE
+
+            - name: Upload release banner
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  RELEASE_TAG: ${{ steps.release.outputs.tag }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  cp \
+                    .github/assets/release-banners/new-release-banner.png \
+                    "$RUNNER_TEMP/release-banner.png"
+
+                  gh release upload "$RELEASE_TAG" \
+                    "$RUNNER_TEMP/release-banner.png" \
+                    --clobber \
+                    --repo "$GITHUB_REPOSITORY"
+
+            - name: Add banner and release metadata
+              env:
+                  RELEASE_PRERELEASE: ${{ steps.release.outputs.prerelease }}
+                  RELEASE_PUBLISHED_DATE: ${{ steps.release.outputs.published_date }}
+                  RELEASE_TAG: ${{ steps.release.outputs.tag }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  if [[ "$RELEASE_PRERELEASE" == 'true' ]]; then
+                    release_heading='New Pre-Release'
+                    release_icon='🧪'
+                    release_label='Pre-Release'
+                    release_note='Built for testing and early feedback. Not intended for production use.'
+                  else
+                    release_heading='New Release'
+                    release_icon='🚀'
+                    release_label='Stable Release'
+                    release_note='Production-ready and available now.'
+                  fi
+
+                  banner_url="${GITHUB_SERVER_URL%/}/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/release-banner.png"
+
+                  {
+                    printf '![RentnerKev release banner](%s)\n\n' "$banner_url"
+                    printf '# %s %s · \140%s\140\n\n' \
+                      "$release_icon" \
+                      "$release_heading" \
+                      "$RELEASE_TAG"
+                    printf '> **%s** · Published on **%s**  \n' \
+                      "$release_label" \
+                      "$RELEASE_PUBLISHED_DATE"
+                    printf '> %s\n\n' "$release_note"
+                    printf '%s\n\n' '---'
+                    cat release-artifact/release-notes.md
+                  } > release-body.md
+
+                  expected_banner="![RentnerKev release banner](${banner_url})"
+                  actual_banner="$(head -n 1 release-body.md)"
+
+                  if [[ "$actual_banner" != "$expected_banner" ]]; then
+                    echo "::error title=Missing release banner::The banner must be the first line of the release body"
+                    exit 1
+                  fi
+
+            - name: Update GitHub release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  RELEASE_TAG: ${{ steps.release.outputs.tag }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  gh release edit "$RELEASE_TAG" \
+                    --notes-file release-body.md \
+                    --repo "$GITHUB_REPOSITORY" \
+                    --verify-tag
+
+                  expected_banner="$(head -n 1 release-body.md)"
+                  actual_banner="$(
+                    gh release view "$RELEASE_TAG" \
+                      --json body \
+                      --jq '.body | split("\n")[0]' \
+                      --repo "$GITHUB_REPOSITORY"
+                  )"
+
+                  if [[ "$actual_banner" != "$expected_banner" ]]; then
+                    echo "::error title=Release verification failed::The published release does not start with the expected banner"
+                    exit 1
+                  fi
