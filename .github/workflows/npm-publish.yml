@@ -7,6 +7,7 @@ on:
 
 permissions:
     contents: read
+    id-token: write
 
 jobs:
     publish:
@@ -105,12 +106,5 @@ jobs:
                   }
                   NODE
 
-            - name: Verify npm authentication
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-              run: npm whoami --registry=https://registry.npmjs.org
-
-            - name: Publish package
-              env:
-                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+            - name: Publish package with trusted publishing
               run: npm publish --access public
