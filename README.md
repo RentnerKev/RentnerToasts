@@ -30,7 +30,7 @@ import { ToastProvider } from '@rentnerkev/toasts'
 
 export function App() {
     return (
-        <ToastProvider position="bottom-right">
+        <ToastProvider position="bottom-right" locale="de">
             <MainApp />
         </ToastProvider>
     )
@@ -90,12 +90,26 @@ Bei Tailwind CSS v4 muss das Paket als Quelle angegeben werden:
 
 Der `ToastProvider` unterstützt folgende Props:
 
-| Prop           | Typ                 | Standard         | Beschreibung                                          |
-| :------------- | :------------------ | :--------------- | :---------------------------------------------------- |
-| `position`     | `ToastPosition`     | `'bottom-right'` | Position der Toasts.                                  |
-| `customDesign` | `ToastCustomDesign` | `undefined`      | Überschreibt die Tailwind-Klassen einzelner Bereiche. |
-| `className`    | `string`            | `undefined`      | Zusätzliche Tailwind-Klassen für jeden Toast.         |
-| `children`     | `ReactNode`         | –                | Inhalt der Anwendung.                                 |
+| Prop           | Typ                      | Standard         | Beschreibung                                          |
+| :------------- | :----------------------- | :--------------- | :---------------------------------------------------- |
+| `position`     | `ToastPosition`          | `'bottom-right'` | Position der Toasts.                                  |
+| `customDesign` | `ToastCustomDesign`      | `undefined`      | Überschreibt die Tailwind-Klassen einzelner Bereiche. |
+| `className`    | `string`                 | `undefined`      | Zusätzliche Tailwind-Klassen für jeden Toast.         |
+| `locale`       | `'de' \| 'en'`           | `'de'`           | Sprache der zugänglichen Systemtexte.                 |
+| `messages`     | `Partial<ToastMessages>` | `undefined`      | Überschreibt einzelne Systemtexte.                    |
+| `children`     | `ReactNode`              | –                | Inhalt der Anwendung.                                 |
+
+Deutsch bleibt der Standard. Für englische ARIA-Texte oder eigene Begriffe
+können `locale` und `messages` kombiniert werden:
+
+```tsx
+<ToastProvider
+    locale="en"
+    messages={{ closeNotification: 'Dismiss notification' }}
+>
+    <App />
+</ToastProvider>
+```
 
 ### Eigenes Design
 
@@ -153,6 +167,8 @@ Die wichtigsten Typen können direkt aus dem Paket importiert werden:
 ```tsx
 import type {
     ToastCustomDesign,
+    ToastLocale,
+    ToastMessages,
     ToastPosition,
     ToastProviderProps,
     ToastType,

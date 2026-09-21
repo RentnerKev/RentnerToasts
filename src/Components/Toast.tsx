@@ -2,9 +2,17 @@ import { useToastLogic } from '../Hooks/useToastLogic.js'
 import { CustomToast } from './CustomToast.js'
 import type { ToastProps } from '../types.js'
 import { AnimatePresence } from 'motion/react'
+import { resolveToastMessages } from '../i18n.js'
 
-export function Toast({ customDesign, position, className }: ToastProps) {
+export function Toast({
+    customDesign,
+    position,
+    className,
+    locale = 'de',
+    messages,
+}: ToastProps) {
     const { state, handler } = useToastLogic()
+    const resolvedMessages = resolveToastMessages(locale, messages)
     const anchorX = position.includes('right') ? 'right' : 'left'
     const anchorY = position.includes('bottom') ? 'bottom' : 'top'
 
@@ -26,7 +34,7 @@ export function Toast({ customDesign, position, className }: ToastProps) {
     return (
         <div
             role="region"
-            aria-label="Benachrichtigungen"
+            aria-label={resolvedMessages.regionLabel}
             className={`fixed z-[99999] flex gap-3 pointer-events-none ${getPositionClasses()}`}
         >
             <AnimatePresence
@@ -42,6 +50,7 @@ export function Toast({ customDesign, position, className }: ToastProps) {
                         onRemove={handler.removeToast}
                         customDesign={customDesign}
                         className={className}
+                        messages={resolvedMessages}
                     />
                 ))}
             </AnimatePresence>

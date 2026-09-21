@@ -13,6 +13,8 @@ export function ToastProvider({
     customDesign,
     position = 'bottom-right',
     className,
+    locale = 'de',
+    messages,
 }: ToastProviderProps) {
     const { state } = useToastLogic()
 
@@ -25,6 +27,8 @@ export function ToastProvider({
                         customDesign={customDesign}
                         position={position}
                         className={className}
+                        locale={locale}
+                        messages={messages}
                     />
                 </Suspense>
             )}

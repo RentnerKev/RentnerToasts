@@ -31,6 +31,8 @@ describe('toast API', () => {
             'ToastProvider',
             'customToast',
             'removeToast',
+            'resolveToastMessages',
+            'toastMessageCatalog',
         ])
     })
 
@@ -153,6 +155,34 @@ describe('toast API', () => {
         expect(alertMarkup).toContain('role="alert"')
         expect(alertMarkup).toContain('aria-live="assertive"')
         expect(alertMarkup).toContain('aria-label="Fehlermeldung kopieren"')
+    })
+
+    test('renders English accessibility messages', () => {
+        customToast('An error occurred', 'Error', 'error', 0)
+
+        const markup = renderToStaticMarkup(
+            createElement(Toast, {
+                position: 'bottom-right',
+                locale: 'en',
+            }),
+        )
+
+        expect(markup).toContain('aria-label="Notifications"')
+        expect(markup).toContain('aria-label="Copy error message"')
+        expect(markup).toContain('aria-label="Close notification"')
+    })
+
+    test('merges message overrides with the selected locale', () => {
+        expect(
+            publicApi.resolveToastMessages('en', {
+                closeNotification: 'Dismiss',
+            }),
+        ).toEqual({
+            regionLabel: 'Notifications',
+            closeNotification: 'Dismiss',
+            copyError: 'Copy error message',
+            errorCopied: 'Error message copied',
+        })
     })
 
     test('does not turn unsafe link schemes into anchors', () => {

@@ -7,6 +7,7 @@ import type {
     toastTransition,
 } from './Animations/toastAnimations.js'
 import type { MotionProps } from 'motion/react'
+import type { ToastLocale, ToastMessages } from './i18n.js'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 export type ToastPosition =
@@ -30,12 +31,15 @@ export interface CustomToastProps {
     onRemove: (id: string) => void
     customDesign?: ToastCustomDesign
     className?: string
+    messages: ToastMessages
 }
 
 export interface ToastProps {
     customDesign?: ToastCustomDesign
     position: ToastPosition
     className?: string
+    locale?: ToastLocale
+    messages?: Partial<ToastMessages>
 }
 
 export interface ToastProviderProps {
@@ -43,6 +47,8 @@ export interface ToastProviderProps {
     customDesign?: ToastCustomDesign
     position?: ToastPosition
     className?: string
+    locale?: ToastLocale
+    messages?: Partial<ToastMessages>
 }
 
 export interface UseCustomToastLogicResult {

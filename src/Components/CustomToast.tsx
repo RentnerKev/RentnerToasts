@@ -18,6 +18,7 @@ export function CustomToast({
     onRemove,
     customDesign,
     className,
+    messages,
     ref,
 }: CustomToastComponentProps) {
     const { state, handler } = useCustomToastLogic({
@@ -26,6 +27,7 @@ export function CustomToast({
         onRemove,
         customDesign,
         className,
+        messages,
     })
 
     return (
@@ -72,8 +74,8 @@ export function CustomToast({
                         whileTap={{ scale: 0.85 }}
                         aria-label={
                             state.copied
-                                ? 'Fehlermeldung kopiert'
-                                : 'Fehlermeldung kopieren'
+                                ? messages.errorCopied
+                                : messages.copyError
                         }
                         className="relative group p-1.5 cursor-pointer rounded-full shrink-0"
                     >
@@ -98,7 +100,7 @@ export function CustomToast({
                     onClick={() => onRemove(toast.id)}
                     whileHover={{ scale: 1.15 }}
                     whileTap={{ scale: 0.85 }}
-                    aria-label="Benachrichtigung schließen"
+                    aria-label={messages.closeNotification}
                     className="relative group p-1.5 cursor-pointer rounded-full shrink-0 overflow-hidden"
                 >
                     <span className="absolute inset-0 rounded-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
