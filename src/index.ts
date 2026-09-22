@@ -1,5 +1,5 @@
 export { ToastProvider } from './Components/ToastProvider.js'
-export { customToast, removeToast, toast } from './toast.js'
+export { toast } from './toast.js'
 export { resolveToastMessages, toastMessageCatalog } from './i18n.js'
 export type {
     ToastCustomDesign,

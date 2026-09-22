@@ -108,13 +108,14 @@ export interface UseCustomToastLogicResult {
         progressClasses: string
         parsedTitle: ReactNode
         parsedContent: ReactNode
-        startingWidth: string
+        startingScale: number
         progressDuration: number
         initialAnimation: ReturnType<typeof getToastInitialAnimation>
         animate: typeof toastAnimate
         exitAnimation: ReturnType<typeof getToastExitAnimation>
         transition: typeof toastTransition
         dragAnimation: typeof toastDragAnimation
+        dragEnabled: boolean
     }
     handler: {
         handleCopyError: (e: MouseEvent<HTMLButtonElement>) => void

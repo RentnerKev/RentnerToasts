@@ -1,7 +1,7 @@
 import { useToastLogic } from '../Hooks/useToastLogic.js'
 import { CustomToast } from './CustomToast.js'
 import type { ToastProps } from '../types.js'
-import { AnimatePresence } from 'motion/react'
+import { AnimatePresence, MotionConfig } from 'motion/react'
 import { resolveToastMessages } from '../i18n.js'
 
 export function Toast({
@@ -32,28 +32,30 @@ export function Toast({
     }
 
     return (
-        <div
-            role="region"
-            aria-label={resolvedMessages.regionLabel}
-            className={`fixed z-[99999] flex gap-3 pointer-events-none ${getPositionClasses()}`}
-        >
-            <AnimatePresence
-                mode="popLayout"
-                anchorX={anchorX}
-                anchorY={anchorY}
+        <MotionConfig reducedMotion="user">
+            <div
+                role="region"
+                aria-label={resolvedMessages.regionLabel}
+                className={`fixed z-[99999] flex gap-3 pointer-events-none ${getPositionClasses()}`}
             >
-                {state.visibleToasts.map((toast) => (
-                    <CustomToast
-                        key={toast.id}
-                        toast={toast}
-                        position={position}
-                        onRemove={handler.removeToast}
-                        customDesign={customDesign}
-                        className={className}
-                        messages={resolvedMessages}
-                    />
-                ))}
-            </AnimatePresence>
-        </div>
+                <AnimatePresence
+                    mode="popLayout"
+                    anchorX={anchorX}
+                    anchorY={anchorY}
+                >
+                    {state.visibleToasts.map((toast) => (
+                        <CustomToast
+                            key={toast.id}
+                            toast={toast}
+                            position={position}
+                            onRemove={handler.removeToast}
+                            customDesign={customDesign}
+                            className={className}
+                            messages={resolvedMessages}
+                        />
+                    ))}
+                </AnimatePresence>
+            </div>
+        </MotionConfig>
     )
 }

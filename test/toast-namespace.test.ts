@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
-import { customToast, toast } from '../src/toast'
+import { toast } from '../src/toast'
 import { clearAllToasts, getToastSnapshot } from '../src/toastStore'
 
 describe('toast namespace', () => {
@@ -216,19 +216,5 @@ describe('toast namespace', () => {
 
         await expect(resultPromise).resolves.toBe('Ergebnis')
         expect(getToastSnapshot()).toEqual([])
-    })
-
-    test('keeps the positional customToast API compatible', () => {
-        const id = customToast('Kompatibel', 'Bestehend', 'warning', 0)
-
-        expect(getToastSnapshot()).toEqual([
-            expect.objectContaining({
-                id,
-                content: 'Kompatibel',
-                title: 'Bestehend',
-                type: 'warning',
-                duration: 0,
-            }),
-        ])
     })
 })

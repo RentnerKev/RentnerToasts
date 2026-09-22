@@ -3,7 +3,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import * as publicApi from '../src/index'
 import { Toast } from '../src/Components/Toast'
-import { customToast, removeToast } from '../src/toast'
+import { toast } from '../src/toast'
 import { clearAllToasts, getToastSnapshot } from '../src/toastStore'
 import { MAX_TOAST_DURATION } from '../src/Hooks/toastTiming'
 
@@ -25,8 +25,6 @@ describe('toast API', () => {
     test('exposes only the intended public API', () => {
         expect(Object.keys(publicApi).toSorted()).toEqual([
             'ToastProvider',
-            'customToast',
-            'removeToast',
             'resolveToastMessages',
             'toast',
             'toastMessageCatalog',
@@ -34,7 +32,7 @@ describe('toast API', () => {
     })
 
     test('adds and removes a toast through the public API', () => {
-        const id = publicApi.customToast('Alles gut', 'Erfolg', 'success')
+        const id = publicApi.toast.success('Alles gut', { title: 'Erfolg' })
 
         expect(getToastSnapshot()).toEqual([
             expect.objectContaining({
@@ -45,92 +43,80 @@ describe('toast API', () => {
             }),
         ])
 
-        publicApi.removeToast(id)
+        publicApi.toast.dismiss(id)
 
         expect(getToastSnapshot()).toEqual([])
     })
 
     test('supports multiple toasts and removes them independently', () => {
-        const firstId = customToast('Erster Toast', undefined, 'info', 0)
-        const secondId = customToast('Zweiter Toast', undefined, 'warning', 0)
+        const firstId = toast.info('Erster Toast', { duration: 0 })
+        const secondId = toast.warning('Zweiter Toast', { duration: 0 })
 
         expect(getToastSnapshot()).toHaveLength(2)
 
-        removeToast(firstId)
-        removeToast(firstId)
+        toast.dismiss(firstId)
+        toast.dismiss(firstId)
 
-        expect(getToastSnapshot().map((toast) => toast.id)).toEqual([secondId])
+        expect(getToastSnapshot().map((item) => item.id)).toEqual([secondId])
     })
 
     test('auto-dismisses a toast and clears its timer on manual removal', async () => {
-        const autoDismissId = customToast(
-            'Verschwindet automatisch',
-            undefined,
-            'info',
-            20,
-        )
+        const autoDismissId = toast.info('Verschwindet automatisch', {
+            duration: 20,
+        })
 
         await wait(50)
 
         expect(
-            getToastSnapshot().some((toast) => toast.id === autoDismissId),
+            getToastSnapshot().some((item) => item.id === autoDismissId),
         ).toBe(false)
 
         const clearTimeoutSpy = spyOn(globalThis, 'clearTimeout')
-        const manualRemoveId = customToast(
-            'Wird manuell entfernt',
-            undefined,
-            'info',
-            100,
-        )
+        const manualRemoveId = toast.info('Wird manuell entfernt', {
+            duration: 100,
+        })
 
-        removeToast(manualRemoveId)
+        toast.dismiss(manualRemoveId)
 
         expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
         clearTimeoutSpy.mockRestore()
     })
 
     test('normalizes unsafe duration values', () => {
-        const defaultId = customToast('Standard')
-        const persistentId = customToast('Persistent', undefined, 'info', 0)
-        const negativeId = customToast('Negativ', undefined, 'info', -1)
-        const nanId = customToast('NaN', undefined, 'info', Number.NaN)
-        const infinityId = customToast(
-            'Infinity',
-            undefined,
-            'info',
-            Number.POSITIVE_INFINITY,
-        )
-        const shortId = customToast('Sehr kurz', undefined, 'info', 0.1)
-        const longId = customToast(
-            'Sehr lang',
-            undefined,
-            'info',
-            Number.MAX_SAFE_INTEGER,
-        )
+        const defaultId = toast.info('Standard')
+        const persistentId = toast.info('Persistent', { duration: 0 })
+        const negativeId = toast.info('Negativ', { duration: -1 })
+        const nanId = toast.info('NaN', { duration: Number.NaN })
+        const infinityId = toast.info('Infinity', {
+            duration: Number.POSITIVE_INFINITY,
+        })
+        const shortId = toast.info('Sehr kurz', { duration: 0.1 })
+        const longId = toast.info('Sehr lang', {
+            duration: Number.MAX_SAFE_INTEGER,
+        })
         const toasts = getToastSnapshot()
 
-        expect(toasts.find((toast) => toast.id === defaultId)?.duration).toBe(
+        expect(toasts.find((item) => item.id === defaultId)?.duration).toBe(
             6000,
         )
-        expect(
-            toasts.find((toast) => toast.id === persistentId)?.duration,
-        ).toBe(0)
-        expect(toasts.find((toast) => toast.id === negativeId)?.duration).toBe(
+        expect(toasts.find((item) => item.id === persistentId)?.duration).toBe(
+            0,
+        )
+        expect(toasts.find((item) => item.id === negativeId)?.duration).toBe(
             6000,
         )
-        expect(toasts.find((toast) => toast.id === nanId)?.duration).toBe(6000)
-        expect(toasts.find((toast) => toast.id === infinityId)?.duration).toBe(
+        expect(toasts.find((item) => item.id === nanId)?.duration).toBe(6000)
+        expect(toasts.find((item) => item.id === infinityId)?.duration).toBe(
             6000,
         )
-        expect(toasts.find((toast) => toast.id === shortId)?.duration).toBe(1)
-        expect(toasts.find((toast) => toast.id === longId)?.duration).toBe(
+        expect(toasts.find((item) => item.id === shortId)?.duration).toBe(1)
+        expect(toasts.find((item) => item.id === longId)?.duration).toBe(
             MAX_TOAST_DURATION,
         )
     })
 
     test('renders status and error toasts as meaningful live regions', () => {
-        customToast('Eine Information', 'Info', 'info', 0)
+        toast.info('Eine Information', { title: 'Info', duration: 0 })
 
         const statusMarkup = renderToStaticMarkup(
             createElement(Toast, { position: 'bottom-right' }),
@@ -143,7 +129,7 @@ describe('toast API', () => {
         )
 
         clearAllToasts()
-        customToast('Ein Fehler', 'Fehler', 'error', 0)
+        toast.error('Ein Fehler', { title: 'Fehler', duration: 0 })
 
         const alertMarkup = renderToStaticMarkup(
             createElement(Toast, { position: 'bottom-right' }),
@@ -155,7 +141,7 @@ describe('toast API', () => {
     })
 
     test('renders English accessibility messages', () => {
-        customToast('An error occurred', 'Error', 'error', 0)
+        toast.error('An error occurred', { title: 'Error', duration: 0 })
 
         const markup = renderToStaticMarkup(
             createElement(Toast, {
@@ -183,12 +169,9 @@ describe('toast API', () => {
     })
 
     test('does not turn unsafe link schemes into anchors', () => {
-        customToast(
-            'Unsicher: [Link](javascript:alert(1))',
-            undefined,
-            'warning',
-            0,
-        )
+        toast.warning('Unsicher: [Link](javascript:alert(1))', {
+            duration: 0,
+        })
 
         const markup = renderToStaticMarkup(
             createElement(Toast, { position: 'bottom-right' }),

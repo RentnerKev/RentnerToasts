@@ -110,17 +110,6 @@ function promiseToast<T>(
     )
 }
 
-export function customToast(
-    content: string,
-    title?: string,
-    type: ToastType = 'success',
-    duration: number = DEFAULT_TOAST_DURATION,
-): ToastId {
-    return createToast(content, title, type, duration)
-}
-
-export { removeToast }
-
 const toastApi: ToastApi = {
     success: (content, options) => showToast('success', content, options),
     error: (content, options) => showToast('error', content, options),

@@ -95,32 +95,19 @@ const user = await toast.promise(
 
 The `success` and `error` values accept text, an object containing `content`, `title`, and `duration`, or a resolver function. A status-specific duration overrides the shared duration. If the loading toast is dismissed before the promise settles, it is not recreated.
 
-## Variants, duration, and compatibility
+## Variants and duration
 
-Available variants are `success`, `error`, `info`, and `warning`. Each shorthand method uses the same option shape:
+Available variants are `success`, `error`, `info`, and `warning`. Each namespace method uses the same option shape:
 
 ```ts
 toast.info(content: string, options?: ToastOptions): ToastId
 ```
 
-The previous positional API remains available as a backward-compatible alias:
-
-```ts
-customToast(
-    content: string,
-    title?: string,
-    type?: ToastType,
-    duration?: number,
-): ToastId
-```
-
-`removeToast(toastId)` also remains available as the compatible single-toast removal function.
-
 The default duration is 6000 milliseconds. Set `duration: 0` to disable automatic expiration. Negative, non-finite, and otherwise invalid values fall back to the default; positive values are capped at a safe `setTimeout` limit.
 
 ## Localization
 
-German accessible system messages remain the default for backward compatibility. Set `locale="en"` for the English catalog, or override individual messages with a typed `Partial<ToastMessages>`:
+German accessible system messages remain the default. Set `locale="en"` for the English catalog, or override individual messages with a typed `Partial<ToastMessages>`:
 
 ```tsx
 <ToastProvider
@@ -223,14 +210,14 @@ import type {
 
 ## Public entry points
 
-| Entry point                       | Purpose                                                                       |
-| --------------------------------- | ----------------------------------------------------------------------------- |
-| `@rentnerkev/toasts`              | Provider, namespace API, compatibility functions, messages, and public types. |
-| `@rentnerkev/toasts/toast`        | Namespace API and compatibility functions.                                    |
-| `@rentnerkev/toasts/messages`     | Locale catalog, resolver, and message types.                                  |
-| `@rentnerkev/toasts/types`        | Toast API, provider, and design types.                                        |
-| `@rentnerkev/toasts/tailwind.css` | Tailwind source and shared theme tokens.                                      |
-| `@rentnerkev/toasts/package.json` | Package metadata.                                                             |
+| Entry point                       | Purpose                                              |
+| --------------------------------- | ---------------------------------------------------- |
+| `@rentnerkev/toasts`              | Provider, namespace API, messages, and public types. |
+| `@rentnerkev/toasts/toast`        | Namespace API.                                       |
+| `@rentnerkev/toasts/messages`     | Locale catalog, resolver, and message types.         |
+| `@rentnerkev/toasts/types`        | Toast API, provider, and design types.               |
+| `@rentnerkev/toasts/tailwind.css` | Tailwind source and shared theme tokens.             |
+| `@rentnerkev/toasts/package.json` | Package metadata.                                    |
 
 ## Development
 
@@ -240,7 +227,7 @@ bun run verify
 bun run playground:dev
 ```
 
-`bun run verify` checks types, lint, formatting, tests, the package build, and the published package contents. The playground remains a local development and test environment and is not included in the npm package.
+`bun run verify` checks types, lint, formatting, unit tests, browser tests, the package build, and the published package contents. Install the Playwright browser once with `bunx playwright install chromium`. The playground remains a local development and test environment and is not included in the npm package.
 
 ## License
 

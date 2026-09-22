@@ -1,6 +1,6 @@
 import { useMemo, type MouseEvent, type ReactNode } from 'react'
 import { AlertCircle, CheckCircle, Info, TriangleAlert } from 'lucide-react'
-import type { MotionProps } from 'motion/react'
+import { useReducedMotion, type MotionProps } from 'motion/react'
 import type { CustomToastProps, UseCustomToastLogicResult } from '../types.js'
 import {
     getToastExitAnimation,
@@ -79,12 +79,11 @@ export function useCustomToastLogic({
 }: CustomToastProps): UseCustomToastLogicResult {
     const { state: copyState, handler: copyHandler } =
         useCopyToastMessage(toast)
+    const prefersReducedMotion = useReducedMotion() === true
 
     const remainingTime = getRemainingToastTime(toast)
-    const startingWidth =
-        toast.duration === 0
-            ? '0%'
-            : `${(remainingTime / toast.duration) * 100}%`
+    const startingScale =
+        toast.duration === 0 ? 0 : remainingTime / toast.duration
     const progressDuration = remainingTime / 1000
 
     const initialAnimation = useMemo(
@@ -105,7 +104,9 @@ export function useCustomToastLogic({
 
     function getWrapperClasses() {
         let baseClasses =
-            'relative overflow-hidden pointer-events-auto flex items-start gap-3 border backdrop-blur-xl cursor-grab'
+            'relative overflow-hidden pointer-events-auto flex items-start gap-3 border backdrop-blur-xl'
+
+        if (!prefersReducedMotion) baseClasses += ' cursor-grab'
 
         if (!className?.includes('w-')) baseClasses += ' w-80'
         if (!className?.includes('rounded')) baseClasses += ' rounded-xl'
@@ -228,7 +229,7 @@ export function useCustomToastLogic({
 
     const linkClassName =
         customDesign?.linkText ||
-        'font-bold underline decoration-2 underline-offset-2 hover:opacity-80 transition-opacity cursor-pointer inline-block pointer-events-auto'
+        'font-bold underline decoration-2 underline-offset-2 hover:opacity-80 motion-safe:transition-opacity cursor-pointer inline-block pointer-events-auto'
 
     const parsedTitle = useMemo(
         () => parseTextWithLinks(toast.title, linkClassName),
@@ -248,13 +249,14 @@ export function useCustomToastLogic({
             progressClasses: getProgressClasses(),
             parsedTitle,
             parsedContent,
-            startingWidth,
+            startingScale,
             progressDuration,
             initialAnimation,
             animate: toastAnimate,
             exitAnimation,
             transition: toastTransition,
             dragAnimation: toastDragAnimation,
+            dragEnabled: !prefersReducedMotion,
         },
         handler: {
             handleCopyError,

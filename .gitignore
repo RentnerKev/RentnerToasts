@@ -23,3 +23,8 @@ Thumbs.db
 
 # Local package-manager credentials
 .npmrc
+
+# Playwright reports
+/test-results/
+/playwright-report/
+/blob-report/

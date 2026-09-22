@@ -1,6 +1,6 @@
 {
     "name": "@rentnerkev/toasts",
-    "version": "1.0.0",
+    "version": "3.0.0",
     "description": "Accessible, customizable toast notifications for React.",
     "keywords": [
         "react",
@@ -28,6 +28,8 @@
         "build": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
         "typecheck": "tsc --noEmit",
         "test": "bun test",
+        "test:browser": "playwright test --config=playwright.config.ts",
+        "playground:install": "bun install --cwd playground --frozen-lockfile",
         "prepare": "bun run build",
         "pack:check": "bun pm pack --dry-run --ignore-scripts",
         "playground:dev": "bun --cwd playground dev",
@@ -37,7 +39,7 @@
         "format": "oxfmt .",
         "format:check": "oxfmt --check .",
         "check": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build",
-        "verify": "bun run check && bun run pack:check"
+        "verify": "bun run playground:install && bun run check && bun run test:browser && bun run pack:check"
     },
     "repository": {
         "type": "git",
@@ -58,15 +60,17 @@
         "react-dom": "^19.0.0"
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.13.0",
+        "@playwright/test": "^1.63.0",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "lucide-react": "^1.47.0",
         "motion": "^13.4.0",
+        "oxfmt": "^0.68.0",
+        "oxlint": "^1.83.0",
         "react": "^19.3.0",
         "react-dom": "^19.3.0",
-        "typescript": "^7.0.2",
-        "oxfmt": "^0.68.0",
-        "oxlint": "^1.83.0"
+        "typescript": "^7.0.2"
     },
     "exports": {
         ".": {
@@ -88,5 +92,5 @@
         },
         "./package.json": "./package.json"
     },
-    "packageManager": "bun@1.4.0"
+    "packageManager": "bun@1.4.2"
 }
