@@ -1,0 +1,91 @@
+name: Dependabot Auto-Merge
+
+on:
+    workflow_run:
+        workflows:
+            - Dependabot Metadata
+        types:
+            - completed
+
+permissions:
+    actions: read
+    contents: write
+    pull-requests: write
+
+jobs:
+    auto-merge:
+        if: >-
+            github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'pull_request' &&
+            github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+            github.event.workflow_run.head_repository.full_name == github.repository
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+
+        steps:
+            - name: Verify eligible Dependabot pull request
+              id: verify
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_REPO: ${{ github.repository }}
+                  PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+                  RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+                  RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+                  RUN_ID: ${{ github.event.workflow_run.id }}
+              run: |
+                  set -euo pipefail
+
+                  if ! [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]] ||
+                     ! [[ "$RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]] ||
+                     ! [[ "$RUN_ID" =~ ^[1-9][0-9]*$ ]] ||
+                     ! [[ "$RUN_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+                      echo "eligible=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  artifacts_json="$(gh api --method GET "repos/$GH_REPO/actions/runs/$RUN_ID/artifacts" -f per_page=100)"
+                  patch_artifact="dependabot-auto-merge-$PR_NUMBER-$RUN_HEAD_SHA-$RUN_ATTEMPT-patch"
+                  minor_artifact="dependabot-auto-merge-$PR_NUMBER-$RUN_HEAD_SHA-$RUN_ATTEMPT-minor"
+                  eligible_artifacts="$(jq --arg patch "$patch_artifact" --arg minor "$minor_artifact" \
+                      '[.artifacts[] | select((.name == $patch or .name == $minor) and .expired == false)] | length' \
+                      <<< "$artifacts_json")"
+
+                  if [[ "$eligible_artifacts" != "1" ]]; then
+                      echo "eligible=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  pr_json="$(gh api "repos/$GH_REPO/pulls/$PR_NUMBER")"
+                  if ! jq -e --arg repo "$GH_REPO" --arg sha "$RUN_HEAD_SHA" '
+                      .user.login == "dependabot[bot]" and
+                      .state == "open" and
+                      .draft == false and
+                      .base.ref == "main" and
+                      .head.sha == $sha and
+                      .head.repo.full_name == $repo and
+                      (.head.ref | startswith("dependabot/"))
+                  ' <<< "$pr_json" > /dev/null; then
+                      echo "eligible=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  commits_json="$(gh api --method GET "repos/$GH_REPO/pulls/$PR_NUMBER/commits" -f per_page=100)"
+                  if ! jq -e '
+                      length > 0 and length < 100 and
+                      all(.[]; .author.login == "dependabot[bot]" and .commit.verification.verified == true)
+                  ' <<< "$commits_json" > /dev/null; then
+                      echo "eligible=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  echo "eligible=true" >> "$GITHUB_OUTPUT"
+                  echo "pr-url=$(jq -r '.html_url' <<< "$pr_json")" >> "$GITHUB_OUTPUT"
+
+            - name: Approve and enable auto-merge
+              if: steps.verify.outputs.eligible == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  PR_URL: ${{ steps.verify.outputs.pr-url }}
+              run: |
+                  gh pr review --approve "$PR_URL"
+                  gh pr merge --auto --squash "$PR_URL"
