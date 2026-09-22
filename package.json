@@ -54,8 +54,8 @@
     "peerDependencies": {
         "lucide-react": "^1.0.0",
         "motion": "^12.38.0 || ^13.0.0",
-        "react": "^19.3.0",
-        "react-dom": "^19.3.0"
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
     },
     "devDependencies": {
         "@types/react": "^19.3.0",
@@ -73,7 +73,20 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js"
         },
-        "./tailwind.css": "./tailwind.css"
+        "./tailwind.css": "./tailwind.css",
+        "./toast": {
+            "types": "./dist/toast.d.ts",
+            "import": "./dist/toast.js"
+        },
+        "./messages": {
+            "types": "./dist/i18n.d.ts",
+            "import": "./dist/i18n.js"
+        },
+        "./types": {
+            "types": "./dist/types.d.ts",
+            "import": "./dist/types.js"
+        },
+        "./package.json": "./package.json"
     },
     "packageManager": "bun@1.4.0"
 }
