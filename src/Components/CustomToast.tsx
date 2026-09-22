@@ -122,6 +122,7 @@ export function CustomToast({
 
             {toast.duration > 0 && (
                 <motion.div
+                    key={`${toast.id}-${toast.createdAt}`}
                     initial={{ width: state.startingWidth }}
                     animate={{ width: '0%' }}
                     transition={{

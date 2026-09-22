@@ -1,18 +1,17 @@
 import React from 'react'
-import { customToast, ToastProvider } from '@rentnerkev/toasts'
+import { toast, ToastProvider } from '@rentnerkev/toasts'
 
 function MainApp() {
     function triggerAll() {
-        customToast('Alles gut gelaufen 🚀', 'Success', 'success')
-        customToast('Irgendwas ist komplett kaputt 💀', 'Error', 'error')
-        customToast('Nur zur Info 👀', 'Info', 'info')
+        toast.success('Alles gut gelaufen 🚀', { title: 'Success' })
+        toast.error('Irgendwas ist komplett kaputt 💀', { title: 'Error' })
+        toast.info('Nur zur Info 👀', { title: 'Info' })
     }
 
     function triggerLinkToast() {
-        customToast(
+        toast.info(
             'Das ist der Link: [#45](https://localhost:3000/ticket/45) hast du ihn angeklickt?',
-            'Neues Ticket',
-            'info',
+            { title: 'Neues Ticket' },
         )
     }
 
@@ -30,6 +29,13 @@ function MainApp() {
                 onClick={triggerLinkToast}
             >
                 Toast mit Link anzeigen
+            </button>
+
+            <button
+                className="bg-gray-600 text-white p-2 rounded"
+                onClick={toast.dismissAll}
+            >
+                Alle Toasts schließen
             </button>
         </div>
     )
