@@ -1,0 +1,12 @@
+@source "./dist/**/*.js";
+
+@theme {
+    --color-primary: #13ecd6;
+    --color-primary-hover: #0fbdaa;
+    --color-background-dark: #0f1014;
+    --color-surface-dark: #181a1f;
+    --color-input-dark: #22252b;
+    --color-border-dark: #2e323b;
+    --color-secondary-text: #9ca3af;
+    --color-muted-foreground: #9ca3af;
+}

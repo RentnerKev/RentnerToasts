@@ -17,10 +17,13 @@
     "type": "module",
     "files": [
         "dist",
+        "tailwind.css",
         "README.md",
         "LICENSE"
     ],
-    "sideEffects": false,
+    "sideEffects": [
+        "./tailwind.css"
+    ],
     "scripts": {
         "build": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
         "typecheck": "tsc --noEmit",
@@ -69,7 +72,8 @@
         ".": {
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js"
-        }
+        },
+        "./tailwind.css": "./tailwind.css"
     },
     "packageManager": "bun@1.4.0"
 }
