@@ -3,12 +3,8 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import * as publicApi from '../src/index'
 import { Toast } from '../src/Components/Toast'
-import {
-    clearAllToasts,
-    customToast,
-    getToastSnapshot,
-    removeToast,
-} from '../src/Hooks/useToastLogic'
+import { customToast, removeToast } from '../src/toast'
+import { clearAllToasts, getToastSnapshot } from '../src/toastStore'
 import { MAX_TOAST_DURATION } from '../src/Hooks/toastTiming'
 
 function wait(milliseconds: number) {
@@ -32,6 +28,7 @@ describe('toast API', () => {
             'customToast',
             'removeToast',
             'resolveToastMessages',
+            'toast',
             'toastMessageCatalog',
         ])
     })

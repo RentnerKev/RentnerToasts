@@ -39,29 +39,91 @@ export function App() {
 
 ### Toast anzeigen
 
-`customToast` kann innerhalb und außerhalb von React-Komponenten aufgerufen
-werden. Die Funktion liefert die ID des neuen Toasts zurück:
+Die Namespace-API bietet benannte Methoden für alle vier Varianten. Jede Methode
+liefert die ID des neuen Toasts zurück:
 
 ```tsx
-import { customToast } from '@rentnerkev/toasts'
+import { toast } from '@rentnerkev/toasts'
 
-const toastId = customToast('Deine Nachricht', 'Erfolg', 'success', 5000)
+const toastId = toast.success('Deine Nachricht', {
+    title: 'Erfolg',
+    duration: 5000,
+})
 ```
 
-### Toast entfernen
+Die imperativen Methoden sind für Browser-Event-Handler und andere reine
+Client-Funktionen vorgesehen. Der Store lebt pro JavaScript-Prozess: Rufe die
+Methoden deshalb niemals während eines Server-Renderings auf. Ein Mount-Effekt
+muss gegen die doppelte Ausführung im React-StrictMode abgesichert sein, damit
+er nicht zwei identische Toasts erzeugt.
 
-Entferne einen Toast mit der von `customToast` zurückgegebenen ID:
+### Toasts entfernen und aktualisieren
+
+Einzelne Toasts lassen sich über ihre ID entfernen. `dismissAll()` entfernt auch
+nicht sichtbare Toasts und beendet sämtliche Ablauf-Timer:
 
 ```tsx
-import { removeToast } from '@rentnerkev/toasts'
-
-removeToast(toastId)
+toast.dismiss(toastId)
+toast.dismissAll()
 ```
 
-## Varianten und Dauer
+`update()` behält ID und Position des Toasts bei. Nur übergebene Felder werden
+geändert; `title: null` entfernt einen vorhandenen Titel. Eine neue `duration`
+startet den Ablauf und die Fortschrittsanzeige erneut:
+
+```tsx
+const updated = toast.update(toastId, {
+    content: 'Die Datei wurde gespeichert.',
+    title: 'Fertig',
+    type: 'success',
+    duration: 4000,
+})
+```
+
+Für eine unbekannte oder bereits entfernte ID liefert `update()` den Wert
+`false`; andernfalls `true`.
+
+### Promise-Status anzeigen
+
+`toast.promise()` zeigt sofort einen persistenten Info-Toast und aktualisiert
+dieselbe ID nach Abschluss auf `success` oder `error`. Das zurückgegebene Promise
+behält den ursprünglichen Erfolgswert beziehungsweise Ablehnungsgrund bei:
+
+```tsx
+const user = await toast.promise(
+    () => fetch('/api/user').then((response) => response.json()),
+    {
+        loading: 'Benutzer wird geladen …',
+        success: (result) => ({
+            content: `${result.name} wurde geladen.`,
+            title: 'Fertig',
+        }),
+        error: (error) => ({
+            content:
+                error instanceof Error ? error.message : 'Unbekannter Fehler',
+            title: 'Laden fehlgeschlagen',
+        }),
+        duration: 5000,
+    },
+)
+```
+
+`success` und `error` akzeptieren Text, ein Objekt mit `content`, `title` und
+`duration` oder eine Funktion. Eine Dauer im jeweiligen Statusobjekt hat Vorrang
+vor der gemeinsamen `duration`. Wird der Lade-Toast vorher entfernt, erscheint
+er nach Abschluss des Promise nicht erneut.
+
+## Varianten, Dauer und Kompatibilität
 
 Verfügbare Varianten sind `success`, `error`, `info` und `warning`. Die
-Signatur lautet:
+Kurzmethoden verwenden jeweils dieselbe Options-Struktur:
+
+```ts
+toast.info(content: string, options?: ToastOptions): ToastId
+```
+
+Die bisherige positionsbasierte API bleibt als vollständig kompatibler Alias
+erhalten:
 
 ```ts
 customToast(
@@ -72,11 +134,12 @@ customToast(
 ): string
 ```
 
+Auch `removeToast(toastId)` bleibt als kompatibler Einzel-Handler exportiert.
 Die Standarddauer beträgt 6000 Millisekunden. `duration: 0` deaktiviert den
 automatischen Ablauf; der Toast bleibt bis zu einem manuellen
-`removeToast` sichtbar. Negative, nicht endliche oder ungültige Werte fallen
-auf die Standarddauer zurück. Positive Werte werden auf eine sichere
-`setTimeout`-Grenze begrenzt.
+Entfernen sichtbar. Negative, nicht endliche oder ungültige Werte fallen auf die
+Standarddauer zurück. Positive Werte werden auf eine sichere `setTimeout`-Grenze
+begrenzt.
 
 ## Styling
 
@@ -155,11 +218,9 @@ Links mit der Markdown-Syntax `[Text](URL)` werden klickbar dargestellt und
 verlinkt; andere Schemes bleiben als Text sichtbar.
 
 ```tsx
-customToast(
-    'Öffne [das Ticket](https://example.com/tickets/45).',
-    'Neues Ticket',
-    'info',
-)
+toast.info('Öffne [das Ticket](https://example.com/tickets/45).', {
+    title: 'Neues Ticket',
+})
 ```
 
 Fehlermeldungen bieten zusätzlich eine Schaltfläche zum Kopieren des Titels
@@ -172,12 +233,18 @@ Die wichtigsten Typen können direkt aus dem Paket importiert werden:
 
 ```tsx
 import type {
+    ToastApi,
+    ToastContentOptions,
     ToastCustomDesign,
+    ToastId,
     ToastLocale,
     ToastMessages,
+    ToastOptions,
     ToastPosition,
+    ToastPromiseOptions,
     ToastProviderProps,
     ToastType,
+    ToastUpdateOptions,
 } from '@rentnerkev/toasts'
 ```
 
