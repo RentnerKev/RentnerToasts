@@ -1,0 +1,59 @@
+name: Dependabot Metadata
+
+on:
+    pull_request:
+        branches:
+            - main
+
+permissions:
+    contents: read
+    pull-requests: read
+
+jobs:
+    metadata:
+        if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+
+        steps:
+            - name: Fetch Dependabot metadata
+              id: metadata
+              uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Classify update
+              id: eligibility
+              env:
+                  MAINTAINER_CHANGES: ${{ steps.metadata.outputs.maintainer-changes }}
+                  UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+              run: |
+                  if [[ "$MAINTAINER_CHANGES" == "true" ]]; then
+                      echo "update-level=" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  case "$UPDATE_TYPE" in
+                      version-update:semver-patch)
+                          echo "update-level=patch" >> "$GITHUB_OUTPUT"
+                          ;;
+                      version-update:semver-minor)
+                          echo "update-level=minor" >> "$GITHUB_OUTPUT"
+                          ;;
+                      *)
+                          echo "update-level=" >> "$GITHUB_OUTPUT"
+                          ;;
+                  esac
+
+            - name: Prepare eligibility marker
+              if: steps.eligibility.outputs.update-level != ''
+              run: touch "$RUNNER_TEMP/dependabot-auto-merge-eligible"
+
+            - name: Publish eligibility marker
+              if: steps.eligibility.outputs.update-level != ''
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: dependabot-auto-merge-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}-${{ steps.eligibility.outputs.update-level }}
+                  path: ${{ runner.temp }}/dependabot-auto-merge-eligible
+                  if-no-files-found: error
+                  retention-days: 1
