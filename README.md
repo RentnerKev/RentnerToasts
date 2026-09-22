@@ -80,13 +80,19 @@ auf die Standarddauer zurück. Positive Werte werden auf eine sichere
 
 ## Styling
 
-Die Library verwendet Tailwind CSS-Klassen und liefert keine eigene CSS-Datei.
-Bei Tailwind CSS v4 muss das Paket als Quelle angegeben werden:
+Die Library liefert einen eigenen Tailwind-Einstieg. Importiere ihn nach Tailwind
+CSS in deine Haupt-CSS-Datei:
 
 ```css
 @import 'tailwindcss';
-@source "../node_modules/@rentnerkev/toasts";
+@import '@rentnerkev/toasts/tailwind.css';
 ```
+
+Der Paket-Einstieg scannt ausschließlich die veröffentlichten JavaScript-Dateien
+unter `dist`. Er stellt die gemeinsamen Theme-Tokens `primary`, `primary-hover`,
+`background-dark`, `surface-dark`, `input-dark`, `border-dark`, `secondary-text`
+und `muted-foreground` bereit. Eigene Werte können danach mit einem weiteren
+`@theme`-Block überschrieben werden.
 
 Der `ToastProvider` unterstützt folgende Props:
 
