@@ -2,6 +2,19 @@
 
 Accessible and customizable React toast notifications with four status variants, progress indicators, safe Markdown links, localization, and Tailwind CSS styling.
 
+## Requirements
+
+Use React 19 with React DOM 19, an ESM-capable build, and Tailwind CSS 4 for
+the documented styling. Import this package's `tailwind.css` entry into your
+Tailwind stylesheet. It uses `@source` for published classes and `@theme` for
+global tokens such as `--color-primary`. Check for token name collisions with
+your app and override them in a later `@theme` block if needed.
+
+In a React Server Components app, import and render `ToastProvider` from a
+module beginning with `'use client'`; call `toast` from client code. See the
+[Tailwind directives](https://tailwindcss.com/docs/functions-and-directives)
+and [React client boundary](https://react.dev/reference/rsc/use-client) guides.
+
 ## Installation
 
 Install the package with npm:
@@ -105,6 +118,11 @@ toast.info(content: string, options?: ToastOptions): ToastId
 
 The default duration is 6000 milliseconds. Set `duration: 0` to disable automatic expiration. Negative, non-finite, and otherwise invalid values fall back to the default; positive values are capped at a safe `setTimeout` limit.
 
+Only the newest three toasts are displayed. Older toasts keep their remaining
+time until they become visible. A visible toast pauses its expiration and
+progress indicator while hovered or while keyboard focus is inside it; the
+timer resumes after both interactions end.
+
 ## Localization
 
 German accessible system messages remain the default. Set `locale="en"` for the English catalog, or override individual messages with a typed `Partial<ToastMessages>`:
@@ -178,6 +196,10 @@ Available `ToastCustomDesign` fields:
 ## Links and accessibility
 
 Markdown links written as `[label](URL)` are interactive and open in a new tab. Only `http` and `https` URLs become links; unsupported schemes remain visible as plain text.
+
+For a message that users must act on, use `duration: 0` so it remains available
+until they dismiss it. Hover and focus pause the timer for timed messages, but
+users may need more than the default six seconds to find a link.
 
 ```tsx
 toast.info('Open [the ticket](https://example.com/tickets/45).', {

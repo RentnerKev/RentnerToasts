@@ -75,6 +75,29 @@ test.describe('toast playground', () => {
         await expect(toastToDismiss).toBeHidden()
     })
 
+    test('pauses a linked toast on hover and keyboard focus', async ({
+        page,
+    }) => {
+        await page.clock.install()
+        await page.getByTestId('show-link-toast').click()
+        const linkedToast = page.getByRole('status').filter({
+            hasText: 'Das ist der Link',
+        })
+
+        await linkedToast.hover()
+        await page.clock.fastForward(7000)
+        await expect(linkedToast).toBeVisible()
+
+        await page.mouse.move(0, 0)
+        await linkedToast.getByRole('link').focus()
+        await page.clock.fastForward(7000)
+        await expect(linkedToast).toBeVisible()
+
+        await page.getByTestId('dismiss-all').focus()
+        await page.clock.fastForward(7000)
+        await expect(linkedToast).toBeHidden()
+    })
+
     test('honors reduced motion for toast transforms and progress', async ({
         page,
     }) => {

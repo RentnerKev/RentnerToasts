@@ -1,4 +1,4 @@
-import type { ReactNode, MouseEvent } from 'react'
+import type { FocusEvent, ReactNode, MouseEvent } from 'react'
 import type {
     getToastExitAnimation,
     getToastInitialAnimation,
@@ -24,6 +24,8 @@ export interface Toast {
     type: ToastType
     duration: number
     createdAt: number
+    remaining: number
+    timerStartedAt?: number
 }
 
 export interface ToastOptions {
@@ -110,6 +112,7 @@ export interface UseCustomToastLogicResult {
         parsedContent: ReactNode
         startingScale: number
         progressDuration: number
+        isTimerRunning: boolean
         initialAnimation: ReturnType<typeof getToastInitialAnimation>
         animate: typeof toastAnimate
         exitAnimation: ReturnType<typeof getToastExitAnimation>
@@ -120,6 +123,10 @@ export interface UseCustomToastLogicResult {
     handler: {
         handleCopyError: (e: MouseEvent<HTMLButtonElement>) => void
         handleDragEnd: NonNullable<MotionProps['onDragEnd']>
+        handleMouseEnter: () => void
+        handleMouseLeave: () => void
+        handleFocus: () => void
+        handleBlur: (event: FocusEvent<HTMLDivElement>) => void
     }
 }
 
