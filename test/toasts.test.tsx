@@ -4,7 +4,11 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import * as publicApi from '../src/index'
 import { Toast } from '../src/Components/Toast'
 import { toast } from '../src/toast'
-import { clearAllToasts, getToastSnapshot } from '../src/toastStore'
+import {
+    clearAllToasts,
+    getToastSnapshot,
+    setToastPauseReason,
+} from '../src/toastStore'
 import { MAX_TOAST_DURATION } from '../src/Hooks/toastTiming'
 
 function wait(milliseconds: number) {
@@ -80,6 +84,56 @@ describe('toast API', () => {
 
         expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
         clearTimeoutSpy.mockRestore()
+    })
+
+    test('starts a queued toast timer only when it becomes visible', async () => {
+        const queuedId = toast.info('Wartet', { duration: 60 })
+        const coveringIds = [
+            toast.info('Zwei', { duration: 0 }),
+            toast.info('Drei', { duration: 0 }),
+            toast.info('Vier', { duration: 0 }),
+        ]
+
+        await wait(90)
+        expect(getToastSnapshot().some(({ id }) => id === queuedId)).toBe(true)
+        expect(
+            getToastSnapshot().find(({ id }) => id === queuedId)
+                ?.timerStartedAt,
+        ).toBeUndefined()
+
+        toast.dismiss(coveringIds[0])
+        expect(
+            getToastSnapshot().find(({ id }) => id === queuedId)
+                ?.timerStartedAt,
+        ).toBeDefined()
+
+        await wait(90)
+        expect(getToastSnapshot().some(({ id }) => id === queuedId)).toBe(false)
+    })
+
+    test('pauses expiration until hover and focus have both ended', async () => {
+        const id = toast.info('Interaktiv', { duration: 70 })
+        await wait(20)
+
+        setToastPauseReason(id, 'hover', true)
+        setToastPauseReason(id, 'focus', true)
+        const paused = getToastSnapshot().find((current) => current.id === id)
+        expect(paused?.timerStartedAt).toBeUndefined()
+        expect(paused?.remaining).toBeGreaterThan(0)
+        expect(paused?.remaining).toBeLessThan(70)
+
+        await wait(90)
+        setToastPauseReason(id, 'hover', false)
+        await wait(80)
+        expect(getToastSnapshot().some((current) => current.id === id)).toBe(
+            true,
+        )
+
+        setToastPauseReason(id, 'focus', false)
+        await wait(80)
+        expect(getToastSnapshot().some((current) => current.id === id)).toBe(
+            false,
+        )
     })
 
     test('normalizes unsafe duration values', () => {

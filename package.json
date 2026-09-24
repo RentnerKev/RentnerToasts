@@ -1,6 +1,6 @@
 {
     "name": "@rentnerkev/toasts",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "description": "Accessible, customizable toast notifications for React.",
     "keywords": [
         "react",

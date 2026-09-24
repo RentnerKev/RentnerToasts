@@ -1,4 +1,9 @@
-import { useMemo, type MouseEvent, type ReactNode } from 'react'
+import {
+    useMemo,
+    type FocusEvent,
+    type MouseEvent,
+    type ReactNode,
+} from 'react'
 import { AlertCircle, CheckCircle, Info, TriangleAlert } from 'lucide-react'
 import { useReducedMotion, type MotionProps } from 'motion/react'
 import type { CustomToastProps, UseCustomToastLogicResult } from '../types.js'
@@ -11,6 +16,7 @@ import {
 } from '../Animations/toastAnimations.js'
 import { useCopyToastMessage } from './useCopyToastMessage.js'
 import { getRemainingToastTime } from './toastTiming.js'
+import { setToastPauseReason } from '../toastStore.js'
 
 const MARKDOWN_LINK_REGEX = /\[([^\]]+)]\(([^)]+)\)/g
 
@@ -227,6 +233,12 @@ export function useCustomToastLogic({
         void copyHandler.copyToastMessage()
     }
 
+    function handleBlur(event: FocusEvent<HTMLDivElement>) {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setToastPauseReason(toast.id, 'focus', false)
+        }
+    }
+
     const linkClassName =
         customDesign?.linkText ||
         'font-bold underline decoration-2 underline-offset-2 hover:opacity-80 motion-safe:transition-opacity cursor-pointer inline-block pointer-events-auto'
@@ -251,6 +263,7 @@ export function useCustomToastLogic({
             parsedContent,
             startingScale,
             progressDuration,
+            isTimerRunning: toast.timerStartedAt !== undefined,
             initialAnimation,
             animate: toastAnimate,
             exitAnimation,
@@ -261,6 +274,12 @@ export function useCustomToastLogic({
         handler: {
             handleCopyError,
             handleDragEnd,
+            handleMouseEnter: () =>
+                setToastPauseReason(toast.id, 'hover', true),
+            handleMouseLeave: () =>
+                setToastPauseReason(toast.id, 'hover', false),
+            handleFocus: () => setToastPauseReason(toast.id, 'focus', true),
+            handleBlur,
         },
     }
 }

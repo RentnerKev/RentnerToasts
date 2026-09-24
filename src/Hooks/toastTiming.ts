@@ -16,11 +16,15 @@ export function normalizeToastDuration(duration?: number) {
 }
 
 export function getRemainingToastTime(
-    toast: Pick<Toast, 'duration' | 'createdAt'>,
+    toast: Pick<Toast, 'duration' | 'remaining' | 'timerStartedAt'>,
+    now = Date.now(),
 ) {
     if (toast.duration === 0) return 0
 
-    const elapsedTime = Math.max(0, Date.now() - toast.createdAt)
+    const elapsedTime =
+        toast.timerStartedAt === undefined
+            ? 0
+            : Math.max(0, now - toast.timerStartedAt)
 
-    return Math.min(toast.duration, Math.max(0, toast.duration - elapsedTime))
+    return Math.min(toast.duration, Math.max(0, toast.remaining - elapsedTime))
 }

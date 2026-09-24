@@ -43,6 +43,10 @@ export function CustomToast({
             dragElastic={0.7}
             whileDrag={state.dragAnimation}
             onDragEnd={handler.handleDragEnd}
+            onMouseEnter={handler.handleMouseEnter}
+            onMouseLeave={handler.handleMouseLeave}
+            onFocusCapture={handler.handleFocus}
+            onBlurCapture={handler.handleBlur}
             role={toast.type === 'error' ? 'alert' : 'status'}
             aria-live={toast.type === 'error' ? 'assertive' : 'polite'}
             aria-atomic="true"
@@ -128,9 +132,13 @@ export function CustomToast({
                 <motion.div
                     key={`${toast.id}-${toast.createdAt}`}
                     initial={{ scaleX: state.startingScale }}
-                    animate={{ scaleX: 0 }}
+                    animate={{
+                        scaleX: state.isTimerRunning ? 0 : state.startingScale,
+                    }}
                     transition={{
-                        duration: state.progressDuration,
+                        duration: state.isTimerRunning
+                            ? state.progressDuration
+                            : 0,
                         ease: 'linear',
                     }}
                     aria-hidden="true"
