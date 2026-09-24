@@ -31,9 +31,11 @@ describe('toast API', () => {
     test('exposes only the intended public API', () => {
         expect(Object.keys(publicApi).toSorted()).toEqual([
             'ToastProvider',
+            'createToastStore',
             'resolveToastMessages',
             'toast',
             'toastMessageCatalog',
+            'useToast',
         ])
     })
 

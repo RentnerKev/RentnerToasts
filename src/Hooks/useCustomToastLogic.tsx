@@ -14,9 +14,9 @@ import {
     toastDragAnimation,
     toastTransition,
 } from '../Animations/toastAnimations.js'
+import { useToastStore } from '../ToastStoreContext.js'
 import { useCopyToastMessage } from './useCopyToastMessage.js'
 import { getRemainingToastTime } from './toastTiming.js'
-import { setToastPauseReason } from '../toastStore.js'
 
 const MARKDOWN_LINK_REGEX = /\[([^\]]+)]\(([^)]+)\)/g
 
@@ -83,6 +83,7 @@ export function useCustomToastLogic({
     customDesign,
     className,
 }: CustomToastProps): UseCustomToastLogicResult {
+    const store = useToastStore()
     const { state: copyState, handler: copyHandler } =
         useCopyToastMessage(toast)
     const prefersReducedMotion = useReducedMotion() === true
@@ -235,7 +236,7 @@ export function useCustomToastLogic({
 
     function handleBlur(event: FocusEvent<HTMLDivElement>) {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            setToastPauseReason(toast.id, 'focus', false)
+            store.setToastPauseReason(toast.id, 'focus', false)
         }
     }
 
@@ -275,10 +276,11 @@ export function useCustomToastLogic({
             handleCopyError,
             handleDragEnd,
             handleMouseEnter: () =>
-                setToastPauseReason(toast.id, 'hover', true),
+                store.setToastPauseReason(toast.id, 'hover', true),
             handleMouseLeave: () =>
-                setToastPauseReason(toast.id, 'hover', false),
-            handleFocus: () => setToastPauseReason(toast.id, 'focus', true),
+                store.setToastPauseReason(toast.id, 'hover', false),
+            handleFocus: () =>
+                store.setToastPauseReason(toast.id, 'focus', true),
             handleBlur,
         },
     }

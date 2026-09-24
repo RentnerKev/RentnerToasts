@@ -1,26 +1,24 @@
 import { useMemo, useSyncExternalStore } from 'react'
-import {
-    getToastDefaults,
-    getToastSnapshot,
-    removeToast,
-    subscribeToToasts,
-} from '../toastStore.js'
+import { useToastStore } from '../ToastStoreContext.js'
+import type { ToastStore } from '../types.js'
 
-export function useToastLogic() {
+export function useToastLogic(store?: ToastStore) {
+    const contextStore = useToastStore()
+    const activeStore = store ?? contextStore
     const toasts = useSyncExternalStore(
-        subscribeToToasts,
-        getToastSnapshot,
-        getToastSnapshot,
+        activeStore.subscribeToToasts,
+        activeStore.getToastSnapshot,
+        activeStore.getToastSnapshot,
     )
 
-    const maxVisibleToasts = getToastDefaults().maxVisibleToasts
+    const maxVisibleToasts = activeStore.getToastDefaults().maxVisibleToasts
     const visibleToasts = useMemo(
         () => toasts.slice(-maxVisibleToasts),
         [maxVisibleToasts, toasts],
     )
 
     return {
-        handler: { removeToast },
+        handler: { removeToast: activeStore.removeToast },
         state: { toasts, visibleToasts },
     }
 }
