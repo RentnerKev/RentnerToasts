@@ -5,6 +5,18 @@ import {
     normalizeToastDuration,
 } from './Hooks/toastTiming.js'
 
+export const DEFAULT_MAX_VISIBLE_TOASTS = 3
+
+export interface ToastDefaults {
+    duration: number
+    maxVisibleToasts: number
+}
+
+let toastDefaults: ToastDefaults = {
+    duration: DEFAULT_TOAST_DURATION,
+    maxVisibleToasts: DEFAULT_MAX_VISIBLE_TOASTS,
+}
+
 interface ToastTimer {
     handle: ReturnType<typeof globalThis.setTimeout>
     token: symbol
@@ -41,7 +53,11 @@ function replaceToastTiming(
 }
 
 function syncToastTimers() {
-    const visibleIds = new Set(toastsState.slice(-3).map((toast) => toast.id))
+    const visibleIds = new Set(
+        toastsState
+            .slice(-toastDefaults.maxVisibleToasts)
+            .map((toast) => toast.id),
+    )
 
     for (const toast of toastsState) {
         const shouldRun =
@@ -72,6 +88,40 @@ function syncToastTimers() {
     }
 }
 
+export function getToastDefaults() {
+    return toastDefaults
+}
+
+export function configureToastDefaults(
+    defaults: Partial<ToastDefaults>,
+): ToastDefaults {
+    const previous = toastDefaults
+    toastDefaults = {
+        duration:
+            defaults.duration === undefined
+                ? previous.duration
+                : normalizeToastDuration(defaults.duration, previous.duration),
+        maxVisibleToasts:
+            defaults.maxVisibleToasts === undefined
+                ? previous.maxVisibleToasts
+                : Number.isInteger(defaults.maxVisibleToasts) &&
+                    defaults.maxVisibleToasts > 0
+                  ? defaults.maxVisibleToasts
+                  : previous.maxVisibleToasts,
+    }
+    toastsState = [...toastsState]
+    syncToastTimers()
+    notifyListeners()
+    return previous
+}
+
+export function restoreToastDefaults(defaults: ToastDefaults) {
+    toastDefaults = defaults
+    toastsState = [...toastsState]
+    syncToastTimers()
+    notifyListeners()
+}
+
 export function subscribeToToasts(listener: () => void) {
     listeners.add(listener)
 
@@ -88,9 +138,12 @@ export function createToast(
     content: string,
     title?: string,
     type: ToastType = 'success',
-    duration: number = DEFAULT_TOAST_DURATION,
+    duration: number = toastDefaults.duration,
 ): ToastId {
-    const normalizedDuration = normalizeToastDuration(duration)
+    const normalizedDuration = normalizeToastDuration(
+        duration,
+        toastDefaults.duration,
+    )
     const id =
         globalThis.crypto?.randomUUID?.() ??
         `${Date.now()}-${Math.random().toString(36).slice(2)}`
@@ -121,7 +174,7 @@ export function updateToast(id: ToastId, options: ToastUpdateOptions) {
     const currentToast = toastsState[toastIndex]
     const resetsDuration = options.duration !== undefined
     const duration = resetsDuration
-        ? normalizeToastDuration(options.duration)
+        ? normalizeToastDuration(options.duration, toastDefaults.duration)
         : currentToast.duration
     const nextToast: Toast = {
         ...currentToast,

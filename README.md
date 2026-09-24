@@ -40,7 +40,12 @@ import { ToastProvider } from '@rentnerkev/toasts'
 
 export function App() {
     return (
-        <ToastProvider position="bottom-right" locale="en">
+        <ToastProvider
+            position="bottom-right"
+            locale="en"
+            defaultDuration={5000}
+            maxVisibleToasts={4}
+        >
             <MainApp />
         </ToastProvider>
     )
@@ -116,9 +121,10 @@ Available variants are `success`, `error`, `info`, and `warning`. Each namespace
 toast.info(content: string, options?: ToastOptions): ToastId
 ```
 
-The default duration is 6000 milliseconds. Set `duration: 0` to disable automatic expiration. Negative, non-finite, and otherwise invalid values fall back to the default; positive values are capped at a safe `setTimeout` limit.
+The default duration is 6000 milliseconds. Set `duration: 0` to disable automatic expiration. Negative, non-finite, and otherwise invalid values fall back to the default; positive values are capped at a safe `setTimeout` limit. Set `defaultDuration` on `ToastProvider` to change this default centrally.
 
-Only the newest three toasts are displayed. Older toasts keep their remaining
+Only the newest three toasts are displayed by default. Set `maxVisibleToasts` on
+`ToastProvider` to change the visible limit centrally. Older toasts keep their remaining
 time until they become visible. A visible toast pauses its expiration and
 progress indicator while hovered or while keyboard focus is inside it; the
 timer resumes after both interactions end.
@@ -140,14 +146,16 @@ The message catalog and resolver are exported as `toastMessageCatalog` and `reso
 
 ## `ToastProvider` props
 
-| Prop           | Type                     | Default          | Description                                             |
-| -------------- | ------------------------ | ---------------- | ------------------------------------------------------- |
-| `position`     | `ToastPosition`          | `'bottom-right'` | Screen position used for the toast stack.               |
-| `customDesign` | `ToastCustomDesign`      | `undefined`      | Overrides Tailwind classes for individual visual parts. |
-| `className`    | `string`                 | `undefined`      | Additional Tailwind classes applied to every toast.     |
-| `locale`       | `'de' \| 'en'`           | `'de'`           | Selects the accessible system-message catalog.          |
-| `messages`     | `Partial<ToastMessages>` | `undefined`      | Overrides individual system messages.                   |
-| `children`     | `ReactNode`              | -                | Application content rendered by the provider.           |
+| Prop               | Type                     | Default          | Description                                                               |
+| ------------------ | ------------------------ | ---------------- | ------------------------------------------------------------------------- |
+| `position`         | `ToastPosition`          | `'bottom-right'` | Screen position used for the toast stack.                                 |
+| `customDesign`     | `ToastCustomDesign`      | `undefined`      | Overrides Tailwind classes for individual visual parts.                   |
+| `className`        | `string`                 | `undefined`      | Additional Tailwind classes applied to every toast.                       |
+| `locale`           | `'de' \| 'en'`           | `'de'`           | Selects the accessible system-message catalog.                            |
+| `messages`         | `Partial<ToastMessages>` | `undefined`      | Overrides individual system messages.                                     |
+| `defaultDuration`  | `number`                 | `6000`           | Default duration in milliseconds when a toast has no explicit `duration`. |
+| `maxVisibleToasts` | `number`                 | `3`              | Number of newest toasts displayed at once.                                |
+| `children`         | `ReactNode`              | -                | Application content rendered by the provider.                             |
 
 ## Tailwind CSS
 
