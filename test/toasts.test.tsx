@@ -6,7 +6,9 @@ import { Toast } from '../src/Components/Toast'
 import { toast } from '../src/toast'
 import {
     clearAllToasts,
+    configureToastDefaults,
     getToastSnapshot,
+    restoreToastDefaults,
     setToastPauseReason,
 } from '../src/toastStore'
 import { MAX_TOAST_DURATION } from '../src/Hooks/toastTiming'
@@ -62,6 +64,40 @@ describe('toast API', () => {
         toast.dismiss(firstId)
 
         expect(getToastSnapshot().map((item) => item.id)).toEqual([secondId])
+    })
+
+    test('uses centrally configured defaults for duration and visible timers', () => {
+        const beforeConfiguration = getToastSnapshot()
+        const previousDefaults = configureToastDefaults({
+            duration: 1234,
+            maxVisibleToasts: 2,
+        })
+
+        try {
+            const ids = [
+                toast.info('Eins'),
+                toast.info('Zwei'),
+                toast.info('Drei'),
+            ]
+            const snapshot = getToastSnapshot()
+
+            expect(snapshot).not.toBe(beforeConfiguration)
+            expect(snapshot.map(({ duration }) => duration)).toEqual([
+                1234, 1234, 1234,
+            ])
+            expect(
+                snapshot.find(({ id }) => id === ids[0])?.timerStartedAt,
+            ).toBeUndefined()
+            expect(
+                snapshot.find(({ id }) => id === ids[1])?.timerStartedAt,
+            ).toBeDefined()
+            expect(
+                snapshot.find(({ id }) => id === ids[2])?.timerStartedAt,
+            ).toBeDefined()
+        } finally {
+            restoreToastDefaults(previousDefaults)
+            clearAllToasts()
+        }
     })
 
     test('auto-dismisses a toast and clears its timer on manual removal', async () => {

@@ -1,6 +1,11 @@
+import { useEffect, useLayoutEffect } from 'react'
 import { useToastLogic } from '../Hooks/useToastLogic.js'
+import { configureToastDefaults, restoreToastDefaults } from '../toastStore.js'
 import type { ToastProviderProps } from '../types.js'
 import { Toast } from './Toast.js'
+
+const useIsomorphicLayoutEffect =
+    typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 export function ToastProvider({
     children,
@@ -9,7 +14,18 @@ export function ToastProvider({
     className,
     locale = 'de',
     messages,
+    defaultDuration,
+    maxVisibleToasts,
 }: ToastProviderProps) {
+    useIsomorphicLayoutEffect(() => {
+        const previousDefaults = configureToastDefaults({
+            duration: defaultDuration,
+            maxVisibleToasts,
+        })
+
+        return () => restoreToastDefaults(previousDefaults)
+    }, [defaultDuration, maxVisibleToasts])
+
     const { state } = useToastLogic()
 
     return (

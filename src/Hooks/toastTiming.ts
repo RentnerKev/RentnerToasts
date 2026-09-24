@@ -3,13 +3,16 @@ import type { Toast } from '../types.js'
 export const DEFAULT_TOAST_DURATION = 6000
 export const MAX_TOAST_DURATION = 2_147_483_647
 
-export function normalizeToastDuration(duration?: number) {
+export function normalizeToastDuration(
+    duration?: number,
+    fallback = DEFAULT_TOAST_DURATION,
+) {
     if (duration === undefined || duration === 0) {
-        return duration ?? DEFAULT_TOAST_DURATION
+        return duration ?? fallback
     }
 
     if (!Number.isFinite(duration) || duration < 0) {
-        return DEFAULT_TOAST_DURATION
+        return fallback
     }
 
     return Math.min(Math.max(Math.round(duration), 1), MAX_TOAST_DURATION)

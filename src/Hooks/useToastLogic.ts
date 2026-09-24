@@ -1,5 +1,6 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import {
+    getToastDefaults,
     getToastSnapshot,
     removeToast,
     subscribeToToasts,
@@ -12,7 +13,11 @@ export function useToastLogic() {
         getToastSnapshot,
     )
 
-    const visibleToasts = useMemo(() => toasts.slice(-3), [toasts])
+    const maxVisibleToasts = getToastDefaults().maxVisibleToasts
+    const visibleToasts = useMemo(
+        () => toasts.slice(-maxVisibleToasts),
+        [maxVisibleToasts, toasts],
+    )
 
     return {
         handler: { removeToast },

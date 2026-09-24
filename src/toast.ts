@@ -10,10 +10,10 @@ import type {
     ToastType,
     ToastUpdateOptions,
 } from './types.js'
-import { DEFAULT_TOAST_DURATION } from './Hooks/toastTiming.js'
 import {
     clearAllToasts,
     createToast,
+    getToastDefaults,
     removeToast,
     updateToast,
 } from './toastStore.js'
@@ -53,13 +53,15 @@ function settlePromiseToast<T>(
             title: resolvedMessage.title ?? null,
             type,
             duration:
-                resolvedMessage.duration ?? duration ?? DEFAULT_TOAST_DURATION,
+                resolvedMessage.duration ??
+                duration ??
+                getToastDefaults().duration,
         })
     } catch {
         updateToast(id, {
             title: null,
             type,
-            duration: duration ?? DEFAULT_TOAST_DURATION,
+            duration: duration ?? getToastDefaults().duration,
         })
     }
 }
