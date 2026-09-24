@@ -11,6 +11,7 @@ import type { ToastLocale, ToastMessages } from './i18n.js'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 export type ToastId = string
+export type ToastPauseReason = 'hover' | 'focus'
 export type ToastPosition =
     | 'top-left'
     | 'top-right'
@@ -76,6 +77,40 @@ export interface ToastApi {
     ) => Promise<T>
 }
 
+export interface ToastDefaults {
+    duration: number
+    maxVisibleToasts: number
+}
+
+export interface ToastStoreOptions {
+    defaultDuration?: number
+    maxVisibleToasts?: number
+}
+
+export interface ToastStore {
+    readonly toast: ToastApi
+    getToastDefaults: () => ToastDefaults
+    configureToastDefaults: (defaults: Partial<ToastDefaults>) => ToastDefaults
+    restoreToastDefaults: (defaults: ToastDefaults) => void
+    subscribeToToasts: (listener: () => void) => () => void
+    getToastSnapshot: () => Toast[]
+    createToast: (
+        content: string,
+        title?: string,
+        type?: ToastType,
+        duration?: number,
+    ) => ToastId
+    updateToast: (id: ToastId, options: ToastUpdateOptions) => boolean
+    removeToast: (id: ToastId) => void
+    setToastPauseReason: (
+        id: ToastId,
+        reason: ToastPauseReason,
+        paused: boolean,
+    ) => void
+    clearAllToasts: () => void
+    dispose: () => void
+}
+
 export interface CustomToastProps {
     toast: Toast
     position: ToastPosition
@@ -95,6 +130,7 @@ export interface ToastProps {
 
 export interface ToastProviderProps {
     children: ReactNode
+    store?: ToastStore
     customDesign?: ToastCustomDesign
     position?: ToastPosition
     className?: string

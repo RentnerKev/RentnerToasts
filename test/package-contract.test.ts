@@ -52,4 +52,10 @@ describe('published package contract', () => {
         expect(npmInstallPosition).toBeGreaterThan(-1)
         expect(bunInstallPosition).toBeGreaterThan(npmInstallPosition)
     })
+
+    test('documents scoped stores alongside the global api', () => {
+        expect(readme).toContain('createToastStore')
+        expect(readme).toContain('useToast()')
+        expect(readme).toContain('<ToastProvider store={adminStore}')
+    })
 })

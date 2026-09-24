@@ -52,6 +52,43 @@ export function App() {
 }
 ```
 
+### Isolated application roots
+
+The provider uses the documented default store when no `store` is supplied.
+Create a store explicitly when several React roots need independent toast
+stacks:
+
+```tsx
+import { createToastStore, ToastProvider, useToast } from '@rentnerkev/toasts'
+
+const adminStore = createToastStore({
+    defaultDuration: 5000,
+    maxVisibleToasts: 4,
+})
+
+function AdminApp() {
+    const scopedToast = useToast()
+
+    return (
+        <button onClick={() => scopedToast.success('Admin changes saved.')}>
+            Save
+        </button>
+    )
+}
+
+export function AdminRoot() {
+    return (
+        <ToastProvider store={adminStore} position="top-right">
+            <AdminApp />
+        </ToastProvider>
+    )
+}
+```
+
+`useToast()` returns the API for the nearest provider. Code outside React can
+use the same scope with `adminStore.toast`. Each store owns its toasts,
+timers, pause state, and defaults.
+
 ## Show a toast
 
 The namespace API provides a named method for each status variant. Every method returns the new toast ID:
@@ -65,7 +102,7 @@ const toastId = toast.success('Your changes were saved.', {
 })
 ```
 
-The imperative methods are intended for browser event handlers and other client-only functions. The store lives once per JavaScript process, so never call them during server rendering. Guard any mount effect against React Strict Mode's repeated development execution to avoid creating duplicate toasts.
+The imperative methods are intended for browser event handlers and other client-only functions. The unscoped `toast` API uses one default store per JavaScript process, so never call it during server rendering. Create a request-local store when rendering isolated roots on the server, and call its API from client code. Guard any mount effect against React Strict Mode's repeated development execution to avoid creating duplicate toasts.
 
 ## Dismiss and update toasts
 
@@ -148,6 +185,7 @@ The message catalog and resolver are exported as `toastMessageCatalog` and `reso
 
 | Prop               | Type                     | Default          | Description                                                               |
 | ------------------ | ------------------------ | ---------------- | ------------------------------------------------------------------------- |
+| `store`            | `ToastStore`             | default store    | Store used by this provider and `useToast()`.                             |
 | `position`         | `ToastPosition`          | `'bottom-right'` | Screen position used for the toast stack.                                 |
 | `customDesign`     | `ToastCustomDesign`      | `undefined`      | Overrides Tailwind classes for individual visual parts.                   |
 | `className`        | `string`                 | `undefined`      | Additional Tailwind classes applied to every toast.                       |
@@ -226,6 +264,7 @@ import type {
     ToastApi,
     ToastContentOptions,
     ToastCustomDesign,
+    ToastDefaults,
     ToastId,
     ToastLocale,
     ToastMessages,
@@ -233,6 +272,9 @@ import type {
     ToastPosition,
     ToastPromiseOptions,
     ToastProviderProps,
+    ToastPauseReason,
+    ToastStore,
+    ToastStoreOptions,
     ToastType,
     ToastUpdateOptions,
 } from '@rentnerkev/toasts'
@@ -240,14 +282,14 @@ import type {
 
 ## Public entry points
 
-| Entry point                       | Purpose                                              |
-| --------------------------------- | ---------------------------------------------------- |
-| `@rentnerkev/toasts`              | Provider, namespace API, messages, and public types. |
-| `@rentnerkev/toasts/toast`        | Namespace API.                                       |
-| `@rentnerkev/toasts/messages`     | Locale catalog, resolver, and message types.         |
-| `@rentnerkev/toasts/types`        | Toast API, provider, and design types.               |
-| `@rentnerkev/toasts/tailwind.css` | Tailwind source and shared theme tokens.             |
-| `@rentnerkev/toasts/package.json` | Package metadata.                                    |
+| Entry point                       | Purpose                                                             |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `@rentnerkev/toasts`              | Provider, scoped-store factory, namespace API, messages, and types. |
+| `@rentnerkev/toasts/toast`        | Namespace API and scoped-store factory.                             |
+| `@rentnerkev/toasts/messages`     | Locale catalog, resolver, and message types.                        |
+| `@rentnerkev/toasts/types`        | Toast API, provider, and design types.                              |
+| `@rentnerkev/toasts/tailwind.css` | Tailwind source and shared theme tokens.                            |
+| `@rentnerkev/toasts/package.json` | Package metadata.                                                   |
 
 ## Development
 

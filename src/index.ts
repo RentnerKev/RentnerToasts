@@ -1,5 +1,6 @@
 export { ToastProvider } from './Components/ToastProvider.js'
-export { toast } from './toast.js'
+export { createToastStore, toast } from './toast.js'
+export { useToast } from './ToastStoreContext.js'
 export { resolveToastMessages, toastMessageCatalog } from './i18n.js'
 export type {
     ToastCustomDesign,
@@ -13,6 +14,10 @@ export type {
     ToastPromiseMessage,
     ToastPromiseOptions,
     ToastProviderProps,
+    ToastDefaults,
+    ToastPauseReason,
+    ToastStore,
+    ToastStoreOptions,
     ToastType,
     ToastUpdateOptions,
 } from './types.js'
