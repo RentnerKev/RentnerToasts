@@ -100,6 +100,8 @@ export interface ToastProviderProps {
     className?: string
     locale?: ToastLocale
     messages?: Partial<ToastMessages>
+    defaultDuration?: number
+    maxVisibleToasts?: number
 }
 
 export interface UseCustomToastLogicResult {
