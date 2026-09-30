@@ -13,9 +13,16 @@ import type {
     ToastUpdateOptions,
 } from './types.js'
 import {
+    copyToastProviderDefaultsRegistrar,
     createToastStoreCore,
     defaultToastStore as defaultToastStoreCore,
 } from './toastStore.js'
+
+const PROMISE_RESOLVER_FALLBACKS = {
+    success:
+        'The operation succeeded, but its success message could not be generated.',
+    error: 'The operation failed, but its error message could not be generated.',
+} as const
 
 function resolveLoadingMessage(message: ToastPromiseLoadingMessage) {
     return typeof message === 'string' ? { content: message } : message
@@ -82,6 +89,7 @@ export function createToastApi(store: {
             })
         } catch {
             store.updateToast(id, {
+                content: PROMISE_RESOLVER_FALLBACKS[type],
                 title: null,
                 type,
                 duration: duration ?? store.getToastDefaults().duration,
@@ -141,10 +149,13 @@ export function createToastApi(store: {
 }
 
 function attachToastApi(store: Omit<ToastStore, 'toast'>): ToastStore {
-    return Object.freeze({
+    const attachedStore = Object.freeze({
         ...store,
         toast: createToastApi(store),
     })
+
+    copyToastProviderDefaultsRegistrar(store, attachedStore)
+    return attachedStore
 }
 
 export function createToastStore(options: ToastStoreOptions = {}): ToastStore {

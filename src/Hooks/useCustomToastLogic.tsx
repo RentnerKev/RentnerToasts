@@ -20,6 +20,24 @@ import { getRemainingToastTime } from './toastTiming.js'
 
 const MARKDOWN_LINK_REGEX = /\[([^\]]+)]\(([^)]+)\)/g
 
+function hasTailwindUtility(className: string | undefined, utility: string) {
+    return (
+        className?.split(/\s+/).some((classToken) => {
+            const baseUtility = classToken
+                .slice(classToken.lastIndexOf(':') + 1)
+                .replace(/^!/, '')
+                .replace(/^-/, '')
+
+            return (
+                baseUtility === utility ||
+                baseUtility.startsWith(`${utility}-`) ||
+                baseUtility.startsWith(`${utility}[`) ||
+                baseUtility.startsWith(`${utility}(`)
+            )
+        }) ?? false
+    )
+}
+
 function isSafeToastLink(url: string) {
     try {
         const parsedUrl = new URL(url, 'https://rentnertoasts.invalid')
@@ -115,18 +133,20 @@ export function useCustomToastLogic({
 
         if (!prefersReducedMotion) baseClasses += ' cursor-grab'
 
-        if (!className?.includes('w-')) baseClasses += ' w-80'
-        if (!className?.includes('rounded')) baseClasses += ' rounded-xl'
+        if (!hasTailwindUtility(className, 'w')) baseClasses += ' w-80'
+        if (!hasTailwindUtility(className, 'rounded')) {
+            baseClasses += ' rounded-xl'
+        }
 
         if (
-            !className?.includes('p-') &&
-            !className?.includes('px-') &&
-            !className?.includes('py-')
+            !hasTailwindUtility(className, 'p') &&
+            !hasTailwindUtility(className, 'px') &&
+            !hasTailwindUtility(className, 'py')
         ) {
             baseClasses += ' px-4 py-4'
         }
 
-        if (!className?.includes('shadow')) {
+        if (!hasTailwindUtility(className, 'shadow')) {
             baseClasses += ' shadow-2xl'
         }
 

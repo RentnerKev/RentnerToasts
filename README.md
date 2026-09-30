@@ -150,6 +150,10 @@ const user = await toast.promise(
 
 The `success` and `error` values accept text, an object containing `content`, `title`, and `duration`, or a resolver function. A status-specific duration overrides the shared duration. If the loading toast is dismissed before the promise settles, it is not recreated.
 
+If a success or error resolver throws, the toast keeps the matching status and
+shows a fallback message. The returned promise still fulfills with its original
+value or rejects with its original reason.
+
 ## Variants and duration
 
 Available variants are `success`, `error`, `info`, and `warning`. Each namespace method uses the same option shape:
@@ -165,6 +169,10 @@ Only the newest three toasts are displayed by default. Set `maxVisibleToasts` on
 time until they become visible. A visible toast pauses its expiration and
 progress indicator while hovered or while keyboard focus is inside it; the
 timer resumes after both interactions end.
+
+When providers share a store, the most recently mounted provider supplies each
+default it defines. Removing a provider restores the defaults supplied by the
+remaining providers or the store.
 
 ## Localization
 
@@ -182,6 +190,9 @@ German accessible system messages remain the default. Set `locale="en"` for the 
 The message catalog and resolver are exported as `toastMessageCatalog` and `resolveToastMessages`.
 
 ## `ToastProvider` props
+
+`className` adds Tailwind classes to every toast. Width, padding, radius, and
+shadow utilities replace their corresponding defaults.
 
 | Prop               | Type                     | Default          | Description                                                               |
 | ------------------ | ------------------------ | ---------------- | ------------------------------------------------------------------------- |

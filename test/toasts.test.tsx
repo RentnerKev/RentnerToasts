@@ -7,6 +7,7 @@ import { toast } from '../src/toast'
 import {
     clearAllToasts,
     configureToastDefaults,
+    getToastDefaults,
     getToastSnapshot,
     restoreToastDefaults,
     setToastPauseReason,
@@ -54,6 +55,23 @@ describe('toast API', () => {
         publicApi.toast.dismiss(id)
 
         expect(getToastSnapshot()).toEqual([])
+    })
+
+    test('returns cached snapshots and defaults that callers cannot mutate', () => {
+        toast.info('Bleibt unverändert', { duration: 0 })
+        const snapshot = getToastSnapshot()
+        const defaults = getToastDefaults()
+
+        expect(getToastSnapshot()).toBe(snapshot)
+        expect(getToastDefaults()).toBe(defaults)
+        expect(Object.isFrozen(snapshot)).toBe(true)
+        expect(Object.isFrozen(snapshot[0])).toBe(true)
+        expect(Object.isFrozen(defaults)).toBe(true)
+        expect(Reflect.set(snapshot, 'length', 0)).toBe(false)
+        expect(Reflect.set(snapshot[0], 'content', 'Verändert')).toBe(false)
+        expect(Reflect.set(defaults, 'duration', 1)).toBe(false)
+        expect(getToastSnapshot()[0].content).toBe('Bleibt unverändert')
+        expect(getToastDefaults().duration).toBe(6000)
     })
 
     test('supports multiple toasts and removes them independently', () => {
@@ -245,6 +263,22 @@ describe('toast API', () => {
         expect(markup).toContain('aria-label="Notifications"')
         expect(markup).toContain('aria-label="Copy error message"')
         expect(markup).toContain('aria-label="Close notification"')
+    })
+
+    test('keeps default toast width and padding with gap and shadow classes', () => {
+        toast.info('Benutzerdefinierte Klassen', { duration: 0 })
+
+        const markup = renderToStaticMarkup(
+            createElement(Toast, {
+                position: 'bottom-right',
+                className: 'gap-2 shadow-lg',
+            }),
+        )
+
+        expect(markup).toContain('w-80')
+        expect(markup).toContain('px-4 py-4')
+        expect(markup).toContain('gap-2 shadow-lg')
+        expect(markup).not.toContain('shadow-2xl')
     })
 
     test('merges message overrides with the selected locale', () => {

@@ -1,6 +1,6 @@
 {
     "name": "@rentnerkev/toasts",
-    "version": "3.2.0",
+    "version": "3.2.1",
     "description": "Accessible, customizable toast notifications for React.",
     "keywords": [
         "react",
@@ -32,6 +32,7 @@
         "playground:install": "bun install --cwd playground --frozen-lockfile",
         "prepare": "bun run build",
         "pack:check": "bun pm pack --dry-run --ignore-scripts",
+        "pack:consumer": "node scripts/verify-package.mjs",
         "playground:dev": "bun --cwd playground dev",
         "playground:build": "bun --cwd playground build",
         "lint": "oxlint .",
@@ -39,7 +40,7 @@
         "format": "oxfmt .",
         "format:check": "oxfmt --check .",
         "check": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build",
-        "verify": "bun run playground:install && bun run check && bun run test:browser && bun run pack:check"
+        "verify": "bun run playground:install && bun run check && bun run test:browser && bun run pack:check && bun run pack:consumer"
     },
     "repository": {
         "type": "git",

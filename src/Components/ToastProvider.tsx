@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useToastLogic } from '../Hooks/useToastLogic.js'
 import { defaultToastStore } from '../toast.js'
+import { registerToastProviderDefaults } from '../toastStore.js'
 import { ToastStoreContext } from '../ToastStoreContext.js'
 import type { ToastProviderProps } from '../types.js'
 import { Toast } from './Toast.js'
@@ -19,13 +20,13 @@ export function ToastProvider({
     defaultDuration,
     maxVisibleToasts,
 }: ToastProviderProps) {
+    const defaultsOwner = useRef(Symbol('toast-provider-defaults')).current
+
     useIsomorphicLayoutEffect(() => {
-        const previousDefaults = store.configureToastDefaults({
+        return registerToastProviderDefaults(store, defaultsOwner, {
             duration: defaultDuration,
             maxVisibleToasts,
         })
-
-        return () => store.restoreToastDefaults(previousDefaults)
     }, [defaultDuration, maxVisibleToasts, store])
 
     const { state } = useToastLogic(store)

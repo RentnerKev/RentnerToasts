@@ -33,7 +33,7 @@ function normalizeMaxVisibleToasts(
 }
 
 function getInitialDefaults(options: ToastStoreOptions): ToastDefaults {
-    return {
+    return Object.freeze({
         duration:
             normalizeToastDuration(
                 options.defaultDuration,
@@ -43,7 +43,116 @@ function getInitialDefaults(options: ToastStoreOptions): ToastDefaults {
             options.maxVisibleToasts,
             DEFAULT_MAX_VISIBLE_TOASTS,
         ),
+    })
+}
+
+function normalizeToastDefaults(
+    defaults: Partial<ToastDefaults>,
+    fallback: ToastDefaults,
+): ToastDefaults {
+    return Object.freeze({
+        duration:
+            defaults.duration === undefined
+                ? fallback.duration
+                : (normalizeToastDuration(
+                      defaults.duration,
+                      fallback.duration,
+                  ) ?? fallback.duration),
+        maxVisibleToasts:
+            defaults.maxVisibleToasts === undefined
+                ? fallback.maxVisibleToasts
+                : normalizeMaxVisibleToasts(
+                      defaults.maxVisibleToasts,
+                      fallback.maxVisibleToasts,
+                  ),
+    })
+}
+
+function freezeToastSnapshot(toasts: readonly Toast[]): readonly Toast[] {
+    return Object.freeze(
+        toasts.map((toast) =>
+            Object.isFrozen(toast) ? toast : Object.freeze({ ...toast }),
+        ),
+    )
+}
+
+type ToastProviderDefaultsRegistrar = (
+    owner: symbol,
+    defaults: Partial<ToastDefaults>,
+) => () => void
+
+const toastProviderDefaultsRegistrars = new WeakMap<
+    object,
+    ToastProviderDefaultsRegistrar
+>()
+const externalProviderDefaults = new WeakMap<
+    object,
+    {
+        baseDefaults: ToastDefaults
+        providers: Map<symbol, Partial<ToastDefaults>>
     }
+>()
+
+export function registerToastProviderDefaults(
+    store: ToastStore,
+    owner: symbol,
+    defaults: Partial<ToastDefaults>,
+) {
+    const register = toastProviderDefaultsRegistrars.get(store)
+
+    if (register) return register(owner, defaults)
+
+    let state = externalProviderDefaults.get(store)
+
+    if (!state) {
+        const currentDefaults = store.getToastDefaults()
+        state = {
+            baseDefaults: Object.freeze({
+                duration: currentDefaults.duration,
+                maxVisibleToasts: currentDefaults.maxVisibleToasts,
+            }),
+            providers: new Map(),
+        }
+        externalProviderDefaults.set(store, state)
+    }
+
+    const activeState = state
+    activeState.providers.set(owner, { ...defaults })
+
+    function applyDefaults() {
+        let nextDefaults = activeState.baseDefaults
+
+        for (const providerDefaults of activeState.providers.values()) {
+            nextDefaults = normalizeToastDefaults(
+                providerDefaults,
+                nextDefaults,
+            )
+        }
+
+        store.configureToastDefaults(nextDefaults)
+    }
+
+    applyDefaults()
+
+    return () => {
+        if (!activeState.providers.delete(owner)) return
+
+        if (activeState.providers.size === 0) {
+            store.configureToastDefaults(activeState.baseDefaults)
+            externalProviderDefaults.delete(store)
+            return
+        }
+
+        applyDefaults()
+    }
+}
+
+export function copyToastProviderDefaultsRegistrar(
+    source: object,
+    destination: object,
+) {
+    const register = toastProviderDefaultsRegistrars.get(source)
+    if (register) toastProviderDefaultsRegistrars.set(destination, register)
 }
 
 export interface ToastStoreCore extends Omit<ToastStore, 'toast'> {}
@@ -51,11 +160,13 @@ export interface ToastStoreCore extends Omit<ToastStore, 'toast'> {}
 export function createToastStoreCore(
     options: ToastStoreOptions = {},
 ): ToastStoreCore {
-    let toastDefaults = getInitialDefaults(options)
-    let toastsState: Toast[] = []
+    let baseToastDefaults = getInitialDefaults(options)
+    let toastDefaults = baseToastDefaults
+    let toastsState: readonly Toast[] = Object.freeze([])
     const listeners = new Set<() => void>()
     const toastTimers = new Map<ToastId, ToastTimer>()
     const pauseReasons = new Map<ToastId, Set<ToastPauseReason>>()
+    const providerDefaults = new Map<symbol, Partial<ToastDefaults>>()
 
     function notifyListeners() {
         listeners.forEach((listener) => listener())
@@ -75,8 +186,12 @@ export function createToastStoreCore(
         remaining: number,
         timerStartedAt?: number,
     ) {
-        toastsState = toastsState.map((toast) =>
-            toast.id === id ? { ...toast, remaining, timerStartedAt } : toast,
+        toastsState = freezeToastSnapshot(
+            toastsState.map((toast) =>
+                toast.id === id
+                    ? { ...toast, remaining, timerStartedAt }
+                    : toast,
+            ),
         )
     }
 
@@ -120,37 +235,47 @@ export function createToastStoreCore(
         return toastDefaults
     }
 
+    function applyProviderDefaults() {
+        let nextDefaults = baseToastDefaults
+
+        for (const defaults of providerDefaults.values()) {
+            nextDefaults = normalizeToastDefaults(defaults, nextDefaults)
+        }
+
+        toastDefaults = nextDefaults
+        toastsState = freezeToastSnapshot(toastsState)
+        syncToastTimers()
+        notifyListeners()
+    }
+
     function configureDefaults(
         defaults: Partial<ToastDefaults>,
     ): ToastDefaults {
         const previous = toastDefaults
-        toastDefaults = {
-            duration:
-                defaults.duration === undefined
-                    ? previous.duration
-                    : (normalizeToastDuration(
-                          defaults.duration,
-                          previous.duration,
-                      ) ?? previous.duration),
-            maxVisibleToasts:
-                defaults.maxVisibleToasts === undefined
-                    ? previous.maxVisibleToasts
-                    : normalizeMaxVisibleToasts(
-                          defaults.maxVisibleToasts,
-                          previous.maxVisibleToasts,
-                      ),
-        }
-        toastsState = [...toastsState]
-        syncToastTimers()
-        notifyListeners()
+        baseToastDefaults = normalizeToastDefaults(defaults, baseToastDefaults)
+        applyProviderDefaults()
         return previous
     }
 
     function restoreDefaults(defaults: ToastDefaults) {
-        toastDefaults = defaults
-        toastsState = [...toastsState]
-        syncToastTimers()
-        notifyListeners()
+        baseToastDefaults = Object.freeze({
+            duration: defaults.duration,
+            maxVisibleToasts: defaults.maxVisibleToasts,
+        })
+        applyProviderDefaults()
+    }
+
+    function registerProviderDefaults(
+        owner: symbol,
+        defaults: Partial<ToastDefaults>,
+    ) {
+        providerDefaults.set(owner, { ...defaults })
+        applyProviderDefaults()
+
+        return () => {
+            if (!providerDefaults.delete(owner)) return
+            applyProviderDefaults()
+        }
     }
 
     function subscribe(listener: () => void) {
@@ -179,7 +304,7 @@ export function createToastStoreCore(
             globalThis.crypto?.randomUUID?.() ??
             `${Date.now()}-${Math.random().toString(36).slice(2)}`
 
-        toastsState = [
+        toastsState = freezeToastSnapshot([
             ...toastsState,
             {
                 id,
@@ -190,7 +315,7 @@ export function createToastStoreCore(
                 createdAt: Date.now(),
                 remaining: normalizedDuration,
             },
-        ]
+        ])
         syncToastTimers()
         notifyListeners()
 
@@ -210,7 +335,7 @@ export function createToastStoreCore(
                   toastDefaults.duration,
               )
             : currentToast.duration
-        const nextToast: Toast = {
+        const nextToast: Toast = Object.freeze({
             ...currentToast,
             content: updateOptions.content ?? currentToast.content,
             title:
@@ -226,10 +351,12 @@ export function createToastStoreCore(
             timerStartedAt: resetsDuration
                 ? undefined
                 : currentToast.timerStartedAt,
-        }
+        })
 
-        toastsState = toastsState.map((toast, index) =>
-            index === toastIndex ? nextToast : toast,
+        toastsState = freezeToastSnapshot(
+            toastsState.map((toast, index) =>
+                index === toastIndex ? nextToast : toast,
+            ),
         )
 
         if (resetsDuration) cancelAutoDismiss(id)
@@ -248,7 +375,7 @@ export function createToastStoreCore(
 
         if (nextToastsState.length === toastsState.length) return
 
-        toastsState = nextToastsState
+        toastsState = freezeToastSnapshot(nextToastsState)
         syncToastTimers()
         notifyListeners()
     }
@@ -280,7 +407,7 @@ export function createToastStoreCore(
 
         if (toastsState.length === 0) return
 
-        toastsState = []
+        toastsState = Object.freeze([])
         notifyListeners()
     }
 
@@ -289,7 +416,7 @@ export function createToastStoreCore(
         listeners.clear()
     }
 
-    return {
+    const core: ToastStoreCore = {
         getToastDefaults: getDefaults,
         configureToastDefaults: configureDefaults,
         restoreToastDefaults: restoreDefaults,
@@ -302,6 +429,9 @@ export function createToastStoreCore(
         clearAllToasts: clearAll,
         dispose,
     }
+
+    toastProviderDefaultsRegistrars.set(core, registerProviderDefaults)
+    return core
 }
 
 export const defaultToastStore = createToastStoreCore()

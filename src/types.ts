@@ -19,14 +19,14 @@ export type ToastPosition =
     | 'bottom-right'
 
 export interface Toast {
-    id: ToastId
-    content: string
-    title?: string
-    type: ToastType
-    duration: number
-    createdAt: number
-    remaining: number
-    timerStartedAt?: number
+    readonly id: ToastId
+    readonly content: string
+    readonly title?: string
+    readonly type: ToastType
+    readonly duration: number
+    readonly createdAt: number
+    readonly remaining: number
+    readonly timerStartedAt?: number
 }
 
 export interface ToastOptions {
@@ -78,8 +78,8 @@ export interface ToastApi {
 }
 
 export interface ToastDefaults {
-    duration: number
-    maxVisibleToasts: number
+    readonly duration: number
+    readonly maxVisibleToasts: number
 }
 
 export interface ToastStoreOptions {
@@ -93,7 +93,7 @@ export interface ToastStore {
     configureToastDefaults: (defaults: Partial<ToastDefaults>) => ToastDefaults
     restoreToastDefaults: (defaults: ToastDefaults) => void
     subscribeToToasts: (listener: () => void) => () => void
-    getToastSnapshot: () => Toast[]
+    getToastSnapshot: () => readonly Toast[]
     createToast: (
         content: string,
         title?: string,

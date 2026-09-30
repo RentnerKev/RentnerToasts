@@ -3,7 +3,10 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createToastStore, ToastProvider, toast, useToast } from '../src/index'
 import type { ToastStore } from '../src/types'
-import { getToastSnapshot } from '../src/toastStore'
+import {
+    getToastSnapshot,
+    registerToastProviderDefaults,
+} from '../src/toastStore'
 
 const stores: ToastStore[] = []
 
@@ -54,6 +57,74 @@ describe('isolated toast stores', () => {
         expect(secondStore.getToastSnapshot()).toEqual([
             expect.objectContaining({ id: secondId }),
         ])
+    })
+
+    test('restores shared-store provider defaults when providers unmount out of order', () => {
+        const store = createToastStore({
+            defaultDuration: 1000,
+            maxVisibleToasts: 2,
+        })
+        stores.push(store)
+        const firstOwner = Symbol('first provider')
+        const secondOwner = Symbol('second provider')
+        const removeFirstProvider = registerToastProviderDefaults(
+            store,
+            firstOwner,
+            { duration: 2000 },
+        )
+        const removeSecondProvider = registerToastProviderDefaults(
+            store,
+            secondOwner,
+            { maxVisibleToasts: 4 },
+        )
+
+        expect(store.getToastDefaults()).toEqual({
+            duration: 2000,
+            maxVisibleToasts: 4,
+        })
+
+        removeFirstProvider()
+        expect(store.getToastDefaults()).toEqual({
+            duration: 1000,
+            maxVisibleToasts: 4,
+        })
+
+        removeSecondProvider()
+        expect(store.getToastDefaults()).toEqual({
+            duration: 1000,
+            maxVisibleToasts: 2,
+        })
+    })
+
+    test('tracks shared provider defaults on compatible custom stores', () => {
+        const backingStore = createToastStore({
+            defaultDuration: 1000,
+            maxVisibleToasts: 2,
+        })
+        stores.push(backingStore)
+        const customStore: ToastStore = { ...backingStore }
+        const removeFirstProvider = registerToastProviderDefaults(
+            customStore,
+            Symbol('first provider'),
+            { duration: 2000 },
+        )
+        const removeSecondProvider = registerToastProviderDefaults(
+            customStore,
+            Symbol('second provider'),
+            { maxVisibleToasts: 4 },
+        )
+
+        removeFirstProvider()
+        expect(customStore.getToastDefaults()).toEqual({
+            duration: 1000,
+            maxVisibleToasts: 4,
+        })
+
+        removeSecondProvider()
+        expect(customStore.getToastDefaults()).toEqual({
+            duration: 1000,
+            maxVisibleToasts: 2,
+        })
     })
 
     test('renders only the provider store and exposes its api through useToast', () => {

@@ -198,6 +198,56 @@ describe('toast namespace', () => {
         ])
     })
 
+    test('shows fallback content when the success message resolver throws', async () => {
+        const value = { id: 'kept-result' }
+        const resultPromise = toast.promise(Promise.resolve(value), {
+            loading: 'Wird geladen',
+            success: () => {
+                throw new Error('resolver failure')
+            },
+            error: 'Fehlgeschlagen',
+            duration: 0,
+        })
+        const id = getToastSnapshot()[0].id
+
+        await expect(resultPromise).resolves.toBe(value)
+        expect(getToastSnapshot()).toEqual([
+            expect.objectContaining({
+                id,
+                content:
+                    'The operation succeeded, but its success message could not be generated.',
+                title: undefined,
+                type: 'success',
+                duration: 0,
+            }),
+        ])
+    })
+
+    test('shows fallback content when the error message resolver throws', async () => {
+        const reason = new Error('original rejection')
+        const resultPromise = toast.promise(Promise.reject(reason), {
+            loading: 'Wird geladen',
+            success: 'Geladen',
+            error: () => {
+                throw new Error('resolver failure')
+            },
+            duration: 0,
+        })
+        const id = getToastSnapshot()[0].id
+
+        await expect(resultPromise).rejects.toBe(reason)
+        expect(getToastSnapshot()).toEqual([
+            expect.objectContaining({
+                id,
+                content:
+                    'The operation failed, but its error message could not be generated.',
+                title: undefined,
+                type: 'error',
+                duration: 0,
+            }),
+        ])
+    })
+
     test('does not restore a dismissed promise toast', async () => {
         let resolvePromise: ((value: string) => void) | undefined
         const pendingPromise = new Promise<string>((resolve) => {
