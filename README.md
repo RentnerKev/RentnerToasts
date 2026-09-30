@@ -193,6 +193,11 @@ The message catalog and resolver are exported as `toastMessageCatalog` and `reso
 
 `className` adds Tailwind classes to every toast. Width, padding, radius, and
 shadow utilities replace their corresponding defaults.
+Horizontal and vertical padding overrides are independent: `px-8` keeps
+the default vertical padding, and `py-8` keeps the horizontal padding.
+Conditional utilities such as `sm:w-96` or `hover:p-8` keep the base defaults
+outside their breakpoint or state. Toasts are bounded by the viewport with
+the stack's padding included, including when a custom width is supplied.
 
 | Prop               | Type                     | Default          | Description                                                               |
 | ------------------ | ------------------------ | ---------------- | ------------------------------------------------------------------------- |

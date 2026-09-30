@@ -23,10 +23,15 @@ const MARKDOWN_LINK_REGEX = /\[([^\]]+)]\(([^)]+)\)/g
 function hasTailwindUtility(className: string | undefined, utility: string) {
     return (
         className?.split(/\s+/).some((classToken) => {
-            const baseUtility = classToken
-                .slice(classToken.lastIndexOf(':') + 1)
-                .replace(/^!/, '')
-                .replace(/^-/, '')
+            // Conditional variants must keep the unconditional fallback.
+            // Colons inside arbitrary values are part of the utility itself.
+            let depth = 0
+            for (const character of classToken) {
+                if (character === '[' || character === '(') depth += 1
+                else if (character === ']' || character === ')') depth -= 1
+                else if (character === ':' && depth === 0) return false
+            }
+            const baseUtility = classToken.replace(/^!|!$/g, '')
 
             return (
                 baseUtility === utility ||
@@ -129,7 +134,7 @@ export function useCustomToastLogic({
 
     function getWrapperClasses() {
         let baseClasses =
-            'relative overflow-hidden pointer-events-auto flex items-start gap-3 border backdrop-blur-xl'
+            'relative min-w-0 max-w-full overflow-hidden pointer-events-auto flex items-start gap-3 border backdrop-blur-xl'
 
         if (!prefersReducedMotion) baseClasses += ' cursor-grab'
 
@@ -138,12 +143,9 @@ export function useCustomToastLogic({
             baseClasses += ' rounded-xl'
         }
 
-        if (
-            !hasTailwindUtility(className, 'p') &&
-            !hasTailwindUtility(className, 'px') &&
-            !hasTailwindUtility(className, 'py')
-        ) {
-            baseClasses += ' px-4 py-4'
+        if (!hasTailwindUtility(className, 'p')) {
+            if (!hasTailwindUtility(className, 'px')) baseClasses += ' px-4'
+            if (!hasTailwindUtility(className, 'py')) baseClasses += ' py-4'
         }
 
         if (!hasTailwindUtility(className, 'shadow')) {

@@ -265,6 +265,30 @@ describe('toast API', () => {
         expect(markup).toContain('aria-label="Close notification"')
     })
 
+    test.each([
+        ['px-8', ['w-80', 'py-4'], ['px-4']],
+        ['py-8', ['w-80', 'px-4'], ['py-4']],
+        ['p-8', ['w-80'], ['px-4', 'py-4']],
+        ['sm:w-96 hover:p-8', ['w-80', 'px-4', 'py-4'], []],
+        ['w-[length:var(--toast-width)]', ['px-4', 'py-4'], ['w-80']],
+        ['!px-8 py-8!', ['w-80'], ['px-4', 'py-4']],
+    ])(
+        'preserves unrelated and unconditional defaults for %s',
+        (className, present, absent) => {
+            toast.info('Layout', { duration: 0 })
+            const markup = renderToStaticMarkup(
+                createElement(Toast, {
+                    position: 'bottom-left',
+                    className,
+                }),
+            )
+            for (const utility of present)
+                expect(markup).toContain(` ${utility}`)
+            for (const utility of absent)
+                expect(markup).not.toContain(` ${utility}`)
+        },
+    )
+
     test('keeps default toast width and padding with gap and shadow classes', () => {
         toast.info('Benutzerdefinierte Klassen', { duration: 0 })
 

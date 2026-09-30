@@ -8,12 +8,14 @@ export default defineConfig({
     fullyParallel: true,
     forbidOnly: Boolean(process.env.CI),
     retries: process.env.CI ? 2 : 0,
+    workers: 2,
     reporter: 'list',
-    use: {
-        baseURL,
-        trace: 'retain-on-failure',
-        ...devices['Desktop Chrome'],
-    },
+    use: { baseURL, trace: 'retain-on-failure' },
+    projects: [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    ],
     webServer: {
         command: 'bun --cwd playground dev -- --host 127.0.0.1 --port 4177',
         url: baseURL,

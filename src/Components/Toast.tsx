@@ -36,7 +36,7 @@ export function Toast({
             <div
                 role="region"
                 aria-label={resolvedMessages.regionLabel}
-                className={`fixed z-[99999] flex gap-3 pointer-events-none ${getPositionClasses()}`}
+                className={`fixed z-[99999] flex max-w-full gap-3 pointer-events-none ${getPositionClasses()}`}
             >
                 <AnimatePresence
                     mode="popLayout"

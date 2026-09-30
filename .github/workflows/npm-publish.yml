@@ -18,7 +18,7 @@ permissions:
 jobs:
     publish:
         runs-on: ubuntu-latest
-        timeout-minutes: 15
+        timeout-minutes: 30
 
         steps:
             - name: Validate release tag
@@ -59,7 +59,7 @@ jobs:
               run: bun install --frozen-lockfile
 
             - name: Install Playwright browser
-              run: bunx playwright install --with-deps chromium
+              run: bunx playwright install --with-deps chromium firefox webkit
 
             - name: Derive package version
               id: release-version

@@ -138,4 +138,23 @@ test.describe('toast playground', () => {
         await page.getByTestId('show-link-toast').click()
         await expect(page.getByRole('status')).toContainText('Das ist der Link')
     })
+
+    test('keeps the toast and its dismissal control inside a narrow viewport', async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width: 320, height: 640 })
+        await page.emulateMedia({ reducedMotion: 'reduce' })
+        await page.getByTestId('show-link-toast').click()
+        const toast = page.getByRole('status')
+        await expect(toast).toBeVisible()
+        const bounds = await toast.boundingBox()
+        expect(bounds).not.toBeNull()
+        expect(bounds!.x).toBeGreaterThanOrEqual(0)
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320)
+        const close = toast.getByRole('button', {
+            name: 'Benachrichtigung schließen',
+        })
+        await close.click()
+        await expect(toast).toBeHidden()
+    })
 })
