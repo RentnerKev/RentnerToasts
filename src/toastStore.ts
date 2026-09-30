@@ -165,7 +165,8 @@ export function createToastStoreCore(
     let toastsState: readonly Toast[] = Object.freeze([])
     const listeners = new Set<() => void>()
     const toastTimers = new Map<ToastId, ToastTimer>()
-    const pauseReasons = new Map<ToastId, Set<ToastPauseReason>>()
+    const pauseReasons = new Map<ToastId, Map<ToastPauseReason, Set<symbol>>>()
+    const defaultPauseOwner = Symbol('toast-pause')
     const providerDefaults = new Map<symbol, Partial<ToastDefaults>>()
 
     function notifyListeners() {
@@ -384,13 +385,19 @@ export function createToastStoreCore(
         id: ToastId,
         reason: ToastPauseReason,
         paused: boolean,
+        owner = defaultPauseOwner,
     ) {
         if (!toastsState.some((toast) => toast.id === id)) return
 
-        const reasons = pauseReasons.get(id) ?? new Set<ToastPauseReason>()
-        if (reasons.has(reason) === paused) return
+        const reasons =
+            pauseReasons.get(id) ?? new Map<ToastPauseReason, Set<symbol>>()
+        const owners = reasons.get(reason) ?? new Set<symbol>()
+        if (owners.has(owner) === paused) return
 
-        if (paused) reasons.add(reason)
+        if (paused) owners.add(owner)
+        else owners.delete(owner)
+
+        if (owners.size > 0) reasons.set(reason, owners)
         else reasons.delete(reason)
 
         if (reasons.size > 0) pauseReasons.set(id, reasons)
@@ -479,8 +486,9 @@ export function setToastPauseReason(
     id: ToastId,
     reason: ToastPauseReason,
     paused: boolean,
+    owner?: symbol,
 ) {
-    defaultToastStore.setToastPauseReason(id, reason, paused)
+    defaultToastStore.setToastPauseReason(id, reason, paused, owner)
 }
 
 export function clearAllToasts() {

@@ -89,6 +89,14 @@ export function AdminRoot() {
 use the same scope with `adminStore.toast`. Each store owns its toasts,
 timers, pause state, and defaults.
 
+Hover and focus pauses belong to each mounted toast display. Unmounting a
+provider releases its displays' pauses; it preserves pauses held by other
+providers sharing that store. Timers continue independently of providers.
+Custom displays can pass a stable `Symbol` as the optional fourth argument to
+`store.setToastPauseReason(id, reason, paused, owner)` and release both `hover`
+and `focus` claims on teardown. Calls without an owner keep their separate
+store-level pause until explicitly released.
+
 ## Show a toast
 
 The namespace API provides a named method for each status variant. Every method returns the new toast ID:

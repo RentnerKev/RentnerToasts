@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useToastLogic } from '../Hooks/useToastLogic.js'
 import { defaultToastStore } from '../toast.js'
 import { registerToastProviderDefaults } from '../toastStore.js'
 import { ToastStoreContext } from '../ToastStoreContext.js'
-import type { ToastProviderProps } from '../types.js'
+import type { ToastProviderProps, ToastStore } from '../types.js'
 import { Toast } from './Toast.js'
 
 const useIsomorphicLayoutEffect =
@@ -20,14 +20,26 @@ export function ToastProvider({
     defaultDuration,
     maxVisibleToasts,
 }: ToastProviderProps) {
-    const defaultsOwner = useRef(Symbol('toast-provider-defaults')).current
+    const [defaultsOwner] = useState(() => Symbol('toast-provider-defaults'))
+    const defaultsDisposers = useRef(new Map<ToastStore, () => void>())
 
     useIsomorphicLayoutEffect(() => {
-        return registerToastProviderDefaults(store, defaultsOwner, {
+        const dispose = registerToastProviderDefaults(store, defaultsOwner, {
             duration: defaultDuration,
             maxVisibleToasts,
         })
-    }, [defaultDuration, maxVisibleToasts, store])
+        defaultsDisposers.current.set(store, dispose)
+    }, [defaultDuration, defaultsOwner, maxVisibleToasts, store])
+
+    // Updating defaults preserves mount order. Only unmounting or switching
+    // stores removes this provider's registration.
+    useIsomorphicLayoutEffect(() => {
+        const disposers = defaultsDisposers.current
+        return () => {
+            disposers.get(store)?.()
+            disposers.delete(store)
+        }
+    }, [store])
 
     const { state } = useToastLogic(store)
     const contextValue = useMemo(() => ({ store, toast: store.toast }), [store])

@@ -106,6 +106,7 @@ export interface ToastStore {
         id: ToastId,
         reason: ToastPauseReason,
         paused: boolean,
+        owner?: symbol,
     ) => void
     clearAllToasts: () => void
     dispose: () => void

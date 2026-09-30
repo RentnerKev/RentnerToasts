@@ -36,4 +36,75 @@ export async function check({ page, expect }) {
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(320)
     await toast.getByRole('button', { name: 'Close notification' }).click()
     await expect(toast).toBeHidden()
+
+    await page.clock.install()
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page
+        .getByRole('button', { name: 'Show timed toast', exact: true })
+        .click()
+    const timed = page
+        .getByRole('status')
+        .filter({ hasText: 'Timed notification' })
+    await timed.getByRole('button', { name: 'Close notification' }).focus()
+    // Route changes can unmount a provider without first blurring the toast.
+    const toggleProvider = page.getByRole('button', {
+        name: 'Toggle toast provider',
+    })
+    await toggleProvider.dispatchEvent('click')
+    await expect(timed).toHaveCount(0)
+    await toggleProvider.dispatchEvent('click')
+    await expect(timed).toBeVisible()
+    await page.clock.fastForward(1600)
+    await expect(timed).toBeHidden()
+
+    await page
+        .getByRole('button', { name: 'Show timed toast', exact: true })
+        .click()
+    const switched = page
+        .getByRole('status')
+        .filter({ hasText: 'Timed notification' })
+    const switchedClose = switched.getByRole('button', {
+        name: 'Close notification',
+    })
+    await switchedClose.focus()
+    await page
+        .getByRole('button', { name: 'Switch store facade' })
+        .dispatchEvent('click')
+    await expect(switchedClose).toBeFocused()
+    await page.mouse.move(0, 0)
+    await page.clock.fastForward(1600)
+    await expect(switched).toBeVisible()
+    await page.getByRole('button', { name: 'Switch store facade' }).focus()
+    await page.clock.fastForward(1600)
+    await expect(switched).toBeHidden()
+
+    await page.getByRole('button', { name: 'Mount shared providers' }).click()
+    const duration = page.getByTestId('shared-duration')
+    await expect(duration).toHaveText('7000')
+    await page.getByRole('button', { name: 'Update earlier defaults' }).click()
+    await expect(duration).toHaveText('7000')
+
+    await page.setViewportSize({ width: 1000, height: 640 })
+    await page.getByRole('button', { name: 'Show shared timed toast' }).click()
+    const earlier = page
+        .getByRole('region', { name: 'Earlier display', exact: true })
+        .getByRole('status')
+    const later = page
+        .getByRole('region', { name: 'Later display', exact: true })
+        .getByRole('status')
+    await later.getByRole('button', { name: 'Close notification' }).focus()
+    await earlier.hover()
+    await page
+        .getByRole('button', { name: 'Remove earlier provider' })
+        .dispatchEvent('click')
+    await expect(earlier).toHaveCount(0)
+    await page.mouse.move(0, 630)
+    await page.clock.fastForward(1600)
+    await expect(later).toBeVisible()
+    await page.getByRole('button', { name: 'Mount shared providers' }).focus()
+    await page.clock.fastForward(1600)
+    await expect(later).toBeHidden()
+    await expect(duration).toHaveText('7000')
+    await page.getByRole('button', { name: 'Remove later provider' }).click()
+    await expect(duration).toHaveText('1000')
 }

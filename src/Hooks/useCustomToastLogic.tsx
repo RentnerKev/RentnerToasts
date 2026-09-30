@@ -1,12 +1,19 @@
 import {
+    useEffect,
     useMemo,
+    useRef,
+    useState,
     type FocusEvent,
     type MouseEvent,
     type ReactNode,
 } from 'react'
 import { AlertCircle, CheckCircle, Info, TriangleAlert } from 'lucide-react'
 import { useReducedMotion, type MotionProps } from 'motion/react'
-import type { CustomToastProps, UseCustomToastLogicResult } from '../types.js'
+import type {
+    CustomToastProps,
+    ToastPauseReason,
+    UseCustomToastLogicResult,
+} from '../types.js'
 import {
     getToastExitAnimation,
     getToastInitialAnimation,
@@ -107,6 +114,29 @@ export function useCustomToastLogic({
     className,
 }: CustomToastProps): UseCustomToastLogicResult {
     const store = useToastStore()
+    const [pauseOwner] = useState(() => Symbol('toast-interaction'))
+    const interactionReasons = useRef({ hover: false, focus: false })
+    useEffect(() => {
+        // A provider can switch store facades while keeping the same focused
+        // toast DOM. Carry that display's active interaction to the new store.
+        for (const reason of ['hover', 'focus'] as const) {
+            store.setToastPauseReason(
+                toast.id,
+                reason,
+                interactionReasons.current[reason],
+                pauseOwner,
+            )
+        }
+        return () => {
+            store.setToastPauseReason(toast.id, 'hover', false, pauseOwner)
+            store.setToastPauseReason(toast.id, 'focus', false, pauseOwner)
+        }
+    }, [pauseOwner, store, toast.id])
+
+    function setInteractionPause(reason: ToastPauseReason, paused: boolean) {
+        interactionReasons.current[reason] = paused
+        store.setToastPauseReason(toast.id, reason, paused, pauseOwner)
+    }
     const { state: copyState, handler: copyHandler } =
         useCopyToastMessage(toast)
     const prefersReducedMotion = useReducedMotion() === true
@@ -258,7 +288,7 @@ export function useCustomToastLogic({
 
     function handleBlur(event: FocusEvent<HTMLDivElement>) {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            store.setToastPauseReason(toast.id, 'focus', false)
+            setInteractionPause('focus', false)
         }
     }
 
@@ -297,12 +327,9 @@ export function useCustomToastLogic({
         handler: {
             handleCopyError,
             handleDragEnd,
-            handleMouseEnter: () =>
-                store.setToastPauseReason(toast.id, 'hover', true),
-            handleMouseLeave: () =>
-                store.setToastPauseReason(toast.id, 'hover', false),
-            handleFocus: () =>
-                store.setToastPauseReason(toast.id, 'focus', true),
+            handleMouseEnter: () => setInteractionPause('hover', true),
+            handleMouseLeave: () => setInteractionPause('hover', false),
+            handleFocus: () => setInteractionPause('focus', true),
             handleBlur,
         },
     }

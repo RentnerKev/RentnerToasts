@@ -127,6 +127,58 @@ describe('isolated toast stores', () => {
         })
     })
 
+    test('preserves provider precedence when an existing owner updates its defaults', () => {
+        const store = createTestStore()
+        const firstOwner = Symbol('first provider')
+        const secondOwner = Symbol('second provider')
+        const removeFirst = registerToastProviderDefaults(store, firstOwner, {
+            duration: 2000,
+        })
+        const removeSecond = registerToastProviderDefaults(store, secondOwner, {
+            duration: 7000,
+        })
+
+        registerToastProviderDefaults(store, firstOwner, { duration: 3000 })
+        expect(store.getToastDefaults().duration).toBe(7000)
+        removeSecond()
+        expect(store.getToastDefaults().duration).toBe(3000)
+        removeFirst()
+        expect(store.getToastDefaults().duration).toBe(6000)
+    })
+
+    test('keeps a reason paused until every owner releases it', () => {
+        const store = createTestStore()
+        const id = store.toast.info('Shared pause', { duration: 1000 })
+        const firstOwner = Symbol('first display')
+        const secondOwner = Symbol('second display')
+
+        store.setToastPauseReason(id, 'focus', true, firstOwner)
+        store.setToastPauseReason(id, 'focus', true, secondOwner)
+        store.setToastPauseReason(id, 'focus', false, firstOwner)
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeUndefined()
+
+        // Releasing an absent claim must not resume another owner's timer.
+        store.setToastPauseReason(id, 'focus', false, firstOwner)
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeUndefined()
+
+        store.setToastPauseReason(id, 'focus', false, secondOwner)
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeDefined()
+    })
+
+    test('preserves an unscoped pause when a display releases its own claim', () => {
+        const store = createTestStore()
+        const id = store.toast.info('Imperative pause', { duration: 1000 })
+        const displayOwner = Symbol('display')
+
+        store.setToastPauseReason(id, 'hover', true)
+        store.setToastPauseReason(id, 'hover', true, displayOwner)
+        store.setToastPauseReason(id, 'hover', false, displayOwner)
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeUndefined()
+
+        store.setToastPauseReason(id, 'hover', false)
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeDefined()
+    })
+
     test('renders only the provider store and exposes its api through useToast', () => {
         const scopedStore = createTestStore()
         const globalId = toast.info('Globaler Toast', { duration: 0 })
