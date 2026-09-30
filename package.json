@@ -45,7 +45,7 @@
         "type": "git",
         "url": "git+https://github.com/RentnerKev/RentnerToasts.git"
     },
-    "homepage": "https://github.com/RentnerKev/RentnerToasts#readme",
+    "homepage": "https://packages.rentner.dev/packages/toasts",
     "bugs": {
         "url": "https://github.com/RentnerKev/RentnerToasts/issues"
     },
