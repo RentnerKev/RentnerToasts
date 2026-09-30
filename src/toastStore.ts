@@ -227,8 +227,6 @@ export function createToastStoreCore(
                 toastTimers.set(toast.id, { handle, token })
                 replaceToastTiming(toast.id, toast.remaining, startedAt)
             }
-
-            if (!visibleIds.has(toast.id)) pauseReasons.delete(toast.id)
         }
     }
 

@@ -179,6 +179,39 @@ describe('isolated toast stores', () => {
         expect(store.getToastSnapshot()[0].timerStartedAt).toBeDefined()
     })
 
+    test('preserves explicit pauses when a toast leaves and reenters the visible queue', () => {
+        const store = createToastStore({ maxVisibleToasts: 1 })
+        stores.push(store)
+        const id = store.toast.info('Paused message', { duration: 1000 })
+        store.setToastPauseReason(id, 'focus', true)
+
+        const newer = store.toast.info('Newer message', { duration: 0 })
+        store.toast.dismiss(newer)
+
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeUndefined()
+        expect(store.getToastSnapshot()[0].remaining).toBeGreaterThan(0)
+        store.setToastPauseReason(id, 'focus', false)
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeDefined()
+    })
+
+    test('preserves pause owners across visibility changes until each owner releases', () => {
+        const store = createToastStore({ maxVisibleToasts: 2 })
+        stores.push(store)
+        const id = store.toast.info('Shared paused message', { duration: 1000 })
+        store.toast.info('Newer message', { duration: 0 })
+        const displayOwner = Symbol('display')
+        store.setToastPauseReason(id, 'hover', true, displayOwner)
+        store.setToastPauseReason(id, 'focus', true)
+
+        store.configureToastDefaults({ maxVisibleToasts: 1 })
+        store.setToastPauseReason(id, 'hover', false, displayOwner)
+        store.configureToastDefaults({ maxVisibleToasts: 2 })
+
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeUndefined()
+        store.setToastPauseReason(id, 'focus', false)
+        expect(store.getToastSnapshot()[0].timerStartedAt).toBeDefined()
+    })
+
     test('renders only the provider store and exposes its api through useToast', () => {
         const scopedStore = createTestStore()
         const globalId = toast.info('Globaler Toast', { duration: 0 })
