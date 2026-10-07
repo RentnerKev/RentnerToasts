@@ -1,6 +1,6 @@
 import type { PackedArtifact } from '../lib/Types/automation.types.ts'
 import { createHash } from 'node:crypto'
-import { lstatSync, readFileSync } from 'node:fs'
+import { readRegularFile } from '../lib/regularFile.ts'
 import { resolve, basename } from 'node:path'
 import { command, isMain } from '../lib/runtime.ts'
 import { policy, verifyCheckout } from './identity.ts'
@@ -31,9 +31,7 @@ if (isMain(import.meta.url)) {
     )
         throw new Error('Package contains private source/test files')
     const tarball = resolve(packs[0].filename)
-    if (!lstatSync(tarball).isFile() || lstatSync(tarball).isSymbolicLink())
-        throw new Error('Expected regular package tarball')
-    const integrity = `sha512-${createHash('sha512').update(readFileSync(tarball)).digest('base64')}`
+    const integrity = `sha512-${createHash('sha512').update(readRegularFile(tarball)).digest('base64')}`
     const expected = { name: packageName, version: identity.version, integrity }
     const existing = await lookupPackage(packageName, identity.version)
     if (existing) assertArtifactIdentity(existing, expected)

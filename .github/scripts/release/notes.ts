@@ -1,21 +1,14 @@
-import { lstatSync, readFileSync } from 'node:fs'
+import { readRegularFile } from '../lib/regularFile.ts'
 import type { ReleaseMetadata } from '../lib/Types/automation.types.ts'
 
 export const startMarker = '<!-- rentner-release-notes:start -->'
 export const endMarker = '<!-- rentner-release-notes:end -->'
 
 export function readNotes(path: string): string {
-    const metadata = lstatSync(path)
-    if (
-        !metadata.isFile() ||
-        metadata.isSymbolicLink() ||
-        metadata.size < 1 ||
-        metadata.size > 1_000_000
-    )
-        throw new Error(
-            'Expected regular release notes containing 1 to 1,000,000 bytes',
-        )
-    const notes = readFileSync(path, 'utf8')
+    const notes = readRegularFile(path, {
+        minBytes: 1,
+        maxBytes: 1_000_000,
+    }).toString('utf8')
     if (
         notes.includes('\0') ||
         notes.includes(startMarker) ||

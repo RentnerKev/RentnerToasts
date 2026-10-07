@@ -12,7 +12,36 @@ async function registryResponse(url: string): Promise<Response> {
     return fetch(url, {
         headers: { 'Cache-Control': 'no-cache' },
         signal: AbortSignal.timeout(10_000),
+        redirect: 'error',
     })
+}
+
+export function registryPackagePath(name: string): string {
+    // Only public identities owned by this package suite can leave the runner.
+    // File/event contents are never interpolated as an arbitrary registry path.
+    switch (name) {
+        case '@rentnerkev/calendar':
+            return '@rentnerkev%2Fcalendar'
+        case '@rentnerkev/inputs':
+            return '@rentnerkev%2Finputs'
+        case '@rentnerkev/picker':
+            return '@rentnerkev%2Fpicker'
+        case '@rentnerkev/select':
+            return '@rentnerkev%2Fselect'
+        case '@rentnerkev/toasts':
+            return '@rentnerkev%2Ftoasts'
+        case '@rentnerkev/tooltips':
+            return '@rentnerkev%2Ftooltips'
+        default:
+            throw new Error('Unexpected public registry package identity')
+    }
+}
+
+export function registryVersion(version: string): string {
+    const parts = stableVersion(`v${version}`).split('.').map(Number)
+    if (parts.some((part) => !Number.isSafeInteger(part)))
+        throw new Error('Registry version exceeds SemVer numeric limits')
+    return parts.join('.')
 }
 
 export async function lookupPackage(
@@ -20,7 +49,7 @@ export async function lookupPackage(
     version: string,
 ): Promise<PublishedPackage | undefined> {
     const response = await registryResponse(
-        `https://registry.npmjs.org/${encodeURIComponent(name)}/${version}`,
+        `https://registry.npmjs.org/${registryPackagePath(name)}/${registryVersion(version)}`,
     )
     if (response.status === 404) return undefined
     if (!response.ok)
@@ -45,7 +74,7 @@ export function assertArtifactIdentity(
 
 export async function lookupChannels(name: string): Promise<NpmChannels> {
     const response = await registryResponse(
-        `https://registry.npmjs.org/-/package/${encodeURIComponent(name)}/dist-tags`,
+        `https://registry.npmjs.org/-/package/${registryPackagePath(name)}/dist-tags`,
     )
     if (response.status === 404) return {}
     if (!response.ok) throw new Error('Registry channel lookup failed')

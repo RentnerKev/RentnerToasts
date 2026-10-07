@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test'
 import {
     assertChannelProgression,
+    registryPackagePath,
+    registryVersion,
     waitForPublication,
 } from '../../../.github/scripts/release/registry'
 import type { RegistrySnapshot } from '../../../.github/scripts/release/Types/registry.types'
@@ -11,6 +13,39 @@ const expected = {
     integrity: 'sha512-verified',
 }
 const published = { ...expected, dist: { integrity: expected.integrity } }
+
+test('limits registry requests to public suite identities and canonical stable versions', () => {
+    for (const packageName of [
+        'calendar',
+        'inputs',
+        'picker',
+        'select',
+        'toasts',
+        'tooltips',
+    ]) {
+        expect(registryPackagePath(`@rentnerkev/${packageName}`)).toBe(
+            `@rentnerkev%2F${packageName}`,
+        )
+    }
+    for (const invalid of [
+        'https://evil.invalid',
+        '@rentnerkev/tooltips/secret',
+        '@other/package',
+    ]) {
+        expect(() => registryPackagePath(invalid)).toThrow(
+            'Unexpected public registry',
+        )
+    }
+    expect(registryVersion('2.0.7')).toBe('2.0.7')
+    for (const invalid of [
+        '2.0.7?secret=token',
+        '02.0.7',
+        '2.0.7-beta',
+        '9007199254740992.0.0',
+    ]) {
+        expect(() => registryVersion(invalid)).toThrow()
+    }
+})
 
 test('allows stable forward/equal publication and refuses channel rollback', () => {
     for (const current of [undefined, '1.2.2', '1.2.3', '1.1.99', '0.99.99']) {
