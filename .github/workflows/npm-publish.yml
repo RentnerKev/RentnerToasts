@@ -1,11 +1,12 @@
 name: Publish package
+run-name: Publish ${{ github.event.release.tag_name || inputs.tag }}
 on:
     release:
         types: [published]
     workflow_dispatch:
         inputs:
             tag:
-                description: Existing stable release tag to publish
+                description: Existing published stable release tag (vMAJOR.MINOR.PATCH)
                 required: true
                 type: string
 permissions:
@@ -57,7 +58,9 @@ jobs:
                   package-manager-cache: false
             - name: Install exact-source dependencies
               working-directory: source
-              run: bun install --frozen-lockfile
+              run: |
+                  bun install --frozen-lockfile
+                  bun install --cwd playground --frozen-lockfile
             - name: Install Playwright browsers
               working-directory: source
               run: bunx playwright install --with-deps chromium firefox webkit
