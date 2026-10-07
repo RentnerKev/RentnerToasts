@@ -137,8 +137,8 @@ test('bounds absent registry visibility without accepting a false success', asyn
             },
         ),
     ).rejects.toThrow('did not become visible')
-    expect(reads).toBe(12)
-    expect(pauses).toBe(11)
+    expect(reads).toBe(61)
+    expect(pauses).toBe(60)
 })
 
 test('does not reinterpret registry errors as an absent version', async () => {

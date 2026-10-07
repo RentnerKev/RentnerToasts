@@ -107,7 +107,7 @@ export async function waitForPublication(
     pause: (milliseconds: number) => Promise<void> = pauseRegistry,
 ): Promise<void> {
     /* eslint-disable no-await-in-loop -- Retry order and delay depend on the preceding registry response. */
-    for (let attempt = 0; attempt < 12; attempt++) {
+    for (let attempt = 0; attempt < 61; attempt++) {
         const snapshot = await read()
         // Only missing visibility/channel propagation is retried. A conflicting
         // immutable artifact always fails immediately, including on a retry.
@@ -115,7 +115,7 @@ export async function waitForPublication(
             assertArtifactIdentity(snapshot.published, expected)
         assertChannelProgression(snapshot.latest, expected.version)
         if (snapshot.published && snapshot.latest === expected.version) return
-        if (attempt < 11) await pause(5_000)
+        if (attempt < 60) await pause(5_000)
     }
     /* eslint-enable no-await-in-loop */
     throw new Error(
