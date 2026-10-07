@@ -17,9 +17,9 @@ Accessible React notifications with status variants, progress, Markdown links, a
 Requires React 19, React DOM 19, and Tailwind CSS 4. Motion and Lucide React are required peers, included below.
 
 ```bash
-bun add @rentnerkev/toasts motion@^14 lucide-react@^1
-# npm alternative
 npm install @rentnerkev/toasts motion@^14 lucide-react@^1
+# or with Bun
+bun add @rentnerkev/toasts motion@^14 lucide-react@^1
 ```
 
 Add to your application stylesheet:

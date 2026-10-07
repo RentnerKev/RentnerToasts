@@ -14,6 +14,10 @@ const readme = readFileSync(
     new URL('../../../README.md', import.meta.url),
     'utf8',
 )
+const usageGuide = readFileSync(
+    new URL('../../../docs/usage.md', import.meta.url),
+    'utf8',
+)
 
 describe('published package contract', () => {
     test('keeps the shared React and test contracts', () => {
@@ -62,8 +66,8 @@ describe('published package contract', () => {
     })
 
     test('documents scoped stores alongside the global api', () => {
-        expect(readme).toContain('createToastStore')
-        expect(readme).toContain('useToast()')
-        expect(readme).toContain('<ToastProvider store={adminStore}')
+        expect(usageGuide).toContain('createToastStore')
+        expect(usageGuide).toContain('useToast()')
+        expect(usageGuide).toContain('<ToastProvider store={adminStore}')
     })
 })
