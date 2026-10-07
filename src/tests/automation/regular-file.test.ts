@@ -23,6 +23,13 @@ function fixture(contents: string | Buffer = 'release notes') {
     return { directory, path }
 }
 
+// Deliberately replace the fixture's pathname while its original descriptor is
+// open. This models an attacker swapping the file after open, not a safe read.
+function replaceFixture(target: ReturnType<typeof fixture>) {
+    fs.renameSync(target.path, join(target.directory, 'original'))
+    fs.writeFileSync(target.path, 'replacement')
+}
+
 afterEach(() => {
     for (const directory of directories.splice(0)) {
         const absolute = resolve(directory)
@@ -52,11 +59,10 @@ describe('descriptor-bound regular file reads', () => {
     })
 
     posixTest('reads the opened file when its pathname is replaced', () => {
-        const { path, directory } = fixture('original')
-        const descriptor = fs.openSync(path, fs.constants.O_RDONLY)
+        const target = fixture('original')
+        const descriptor = fs.openSync(target.path, fs.constants.O_RDONLY)
         try {
-            fs.renameSync(path, join(directory, 'original'))
-            fs.writeFileSync(path, 'replacement')
+            replaceFixture(target)
             expect(readRegularDescriptor(descriptor).toString()).toBe(
                 'original',
             )
