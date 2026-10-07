@@ -1,122 +1,74 @@
-name: Publish npm package
-
+name: Publish package
 on:
     release:
-        types:
-            - published
+        types: [published]
     workflow_dispatch:
         inputs:
             tag:
-                description: Existing release tag to publish
+                description: Existing stable release tag to publish
                 required: true
                 type: string
-
 permissions:
     contents: read
-    id-token: write
-
+concurrency:
+    group: npm-publish-${{ github.repository }}-latest
+    cancel-in-progress: false
 jobs:
     publish:
+        name: Publish npm package
         runs-on: ubuntu-latest
         timeout-minutes: 30
-
+        permissions:
+            contents: read
+            id-token: write
         steps:
-            - name: Validate release tag
-              id: release
-              env:
-                  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-              shell: bash
-              run: |
-                  set -euo pipefail
-
-                  if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-                    echo "::error title=Invalid release tag::Expected vMAJOR.MINOR.PATCH, received '$RELEASE_TAG'"
-                    exit 1
-                  fi
-
-                  echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-
-            - name: Checkout release tag
+            - name: Checkout trusted main automation
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
-                  ref: ${{ steps.release.outputs.tag }}
-                  fetch-depth: 1
+                  ref: main
+                  path: automation
                   persist-credentials: false
-
             - name: Set up Bun
               uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
               with:
                   bun-version: 1.4.2
-
-            - name: Set up Node and npm registry
+            - name: Validate stable release identity
+              id: release
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: bun automation/.github/scripts/release/identity.ts
+            - name: Checkout exact release tag
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ steps.release.outputs.tag }}
+                  path: source
+                  fetch-depth: 0
+                  persist-credentials: false
+            - name: Verify committed version and main ancestry
+              working-directory: source
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: bun "$GITHUB_WORKSPACE/automation/.github/scripts/release/identity.ts" --checkout
+            - name: Set up Node and npm trusted publishing
               uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
               with:
                   node-version: 24
                   registry-url: https://registry.npmjs.org
                   package-manager-cache: false
-
-            - name: Install dependencies
+            - name: Install exact-source dependencies
+              working-directory: source
               run: bun install --frozen-lockfile
-
-            - name: Install Playwright browser
+            - name: Install Playwright browsers
+              working-directory: source
               run: bunx playwright install --with-deps chromium firefox webkit
-
-            - name: Derive package version
-              id: release-version
-              env:
-                  RELEASE_TAG: ${{ steps.release.outputs.tag }}
-              run: echo "package_version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
-
-            - name: Verify package name
-              run: |
-                  node -e "const packageJson = require('./package.json'); if (packageJson.name !== '@rentnerkev/toasts') { throw new Error('Unexpected package name: ' + packageJson.name) }"
-
-            - name: Set release version for this CI run
-              env:
-                  PACKAGE_VERSION: ${{ steps.release-version.outputs.package_version }}
-              run: npm version "$PACKAGE_VERSION" --allow-same-version --no-git-tag-version --ignore-scripts
-
-            - name: Verify package version
-              env:
-                  PACKAGE_VERSION: ${{ steps.release-version.outputs.package_version }}
-              run: |
-                  node -e "const packageJson = require('./package.json'); if (packageJson.version !== process.env.PACKAGE_VERSION) { throw new Error('Unexpected package version: ' + packageJson.version) }"
-
-            - name: Run production checks
+            - name: Verify exact-source package
+              working-directory: source
               run: bun run verify
-
-            - name: Inspect npm package
-              run: npm pack --dry-run
-
-            - name: Verify npm package contents
-              run: |
-                  npm pack --dry-run --json --ignore-scripts > npm-pack.json
-
-                  node <<'NODE'
-                  const { readFileSync } = require('node:fs')
-
-                  const packageFiles = JSON.parse(
-                    readFileSync('npm-pack.json', 'utf8'),
-                  )[0].files.map(({ path }) => path)
-
-                  const forbiddenPrefixes = [
-                    'playground/',
-                    'src/',
-                    'test/',
-                    'tests/',
-                    '.github/',
-                  ]
-
-                  const forbiddenFiles = packageFiles.filter((file) =>
-                    forbiddenPrefixes.some((prefix) => file.startsWith(prefix)),
-                  )
-
-                  if (forbiddenFiles.length > 0) {
-                    throw new Error(
-                      `Forbidden package files: ${forbiddenFiles.join(', ')}`,
-                    )
-                  }
-                  NODE
-
-            - name: Publish package with trusted publishing
-              run: npm publish --access public
+            - name: Inspect package
+              working-directory: source
+              run: npm pack --dry-run --ignore-scripts
+            - name: Publish immutable verified artifact
+              working-directory: source
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: bun "$GITHUB_WORKSPACE/automation/.github/scripts/release/publish.ts"

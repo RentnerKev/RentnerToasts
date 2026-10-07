@@ -11,12 +11,13 @@ import type {
     ToastStoreOptions,
     ToastType,
     ToastUpdateOptions,
-} from './types.js'
+} from './lib/ToastStore/Types/toast.types.js'
+
 import {
     copyToastProviderDefaultsRegistrar,
     createToastStoreCore,
     defaultToastStore as defaultToastStoreCore,
-} from './toastStore.js'
+} from './lib/ToastStore/toastStore.js'
 
 const PROMISE_RESOLVER_FALLBACKS = {
     success:

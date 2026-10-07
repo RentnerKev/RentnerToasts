@@ -1,33 +1,7 @@
-export type ToastLocale = 'de' | 'en'
-
-export interface ToastMessages {
-    regionLabel: string
-    closeNotification: string
-    copyError: string
-    errorCopied: string
-}
-
-export const toastMessageCatalog: Record<ToastLocale, ToastMessages> = {
-    de: {
-        regionLabel: 'Benachrichtigungen',
-        closeNotification: 'Benachrichtigung schließen',
-        copyError: 'Fehlermeldung kopieren',
-        errorCopied: 'Fehlermeldung kopiert',
-    },
-    en: {
-        regionLabel: 'Notifications',
-        closeNotification: 'Close notification',
-        copyError: 'Copy error message',
-        errorCopied: 'Error message copied',
-    },
-}
-
-export function resolveToastMessages(
-    locale: ToastLocale = 'de',
-    messages?: Partial<ToastMessages>,
-): ToastMessages {
-    return {
-        ...toastMessageCatalog[locale],
-        ...messages,
-    }
-}
+// Published messages entry; keep existing npm imports compatible.
+export { resolveToastMessages } from './lib/Messages/toastMessages.js'
+export { toastMessageCatalog } from './config/messages.config.js'
+export type {
+    ToastLocale,
+    ToastMessages,
+} from './lib/Messages/Types/messages.types.js'

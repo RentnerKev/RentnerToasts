@@ -1,6 +1,6 @@
 {
     "name": "@rentnerkev/toasts",
-    "version": "3.2.4",
+    "version": "3.3.0",
     "description": "Accessible, customizable toast notifications for React.",
     "keywords": [
         "react",
@@ -26,7 +26,7 @@
     ],
     "scripts": {
         "build": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
-        "typecheck": "tsc --noEmit",
+        "typecheck": "tsc --noEmit && bun run typecheck:automation",
         "test": "bun test",
         "test:browser": "playwright test --config=playwright.config.ts",
         "playground:install": "bun install --cwd playground --frozen-lockfile",
@@ -40,7 +40,8 @@
         "format": "oxfmt .",
         "format:check": "oxfmt --check .",
         "check": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build",
-        "verify": "bun run playground:install && bun run check && bun run test:browser && bun run pack:check && bun run pack:consumer"
+        "verify": "bun run playground:install && bun run check && bun run test:browser && bun run pack:check && bun run pack:consumer",
+        "typecheck:automation": "tsc --noEmit -p .github/scripts/tsconfig.json"
     },
     "repository": {
         "type": "git",
@@ -63,6 +64,7 @@
     "devDependencies": {
         "@axe-core/playwright": "^4.13.0",
         "@playwright/test": "^1.63.0",
+        "@types/node": "^24.19.1",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "lucide-react": "^1.52.0",
@@ -91,7 +93,11 @@
             "types": "./dist/types.d.ts",
             "import": "./dist/types.js"
         },
-        "./package.json": "./package.json"
+        "./package.json": "./package.json",
+        "./lazy-provider": {
+            "types": "./dist/lazy-provider.d.ts",
+            "import": "./dist/lazy-provider.js"
+        }
     },
     "packageManager": "bun@1.4.2"
 }

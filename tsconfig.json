@@ -23,5 +23,5 @@
         "skipLibCheck": true
     },
     "include": ["src"],
-    "exclude": ["playground", "dist", "node_modules"]
+    "exclude": ["playground", "dist", "node_modules", "src/tests"]
 }

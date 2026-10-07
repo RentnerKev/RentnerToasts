@@ -16,6 +16,17 @@ jobs:
         timeout-minutes: 5
 
         steps:
+            - name: Checkout trusted metadata automation
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  ref: ${{ github.event.pull_request.base.sha }}
+                  path: automation
+                  persist-credentials: false
+            - name: Set up Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+              with:
+                  bun-version: 1.4.2
+
             - name: Fetch Dependabot metadata
               id: metadata
               uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
@@ -27,23 +38,7 @@ jobs:
               env:
                   MAINTAINER_CHANGES: ${{ steps.metadata.outputs.maintainer-changes }}
                   UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
-              run: |
-                  if [[ "$MAINTAINER_CHANGES" == "true" ]]; then
-                      echo "update-level=" >> "$GITHUB_OUTPUT"
-                      exit 0
-                  fi
-
-                  case "$UPDATE_TYPE" in
-                      version-update:semver-patch)
-                          echo "update-level=patch" >> "$GITHUB_OUTPUT"
-                          ;;
-                      version-update:semver-minor)
-                          echo "update-level=minor" >> "$GITHUB_OUTPUT"
-                          ;;
-                      *)
-                          echo "update-level=" >> "$GITHUB_OUTPUT"
-                          ;;
-                  esac
+              run: bun automation/.github/scripts/security/classify-update.ts
 
             - name: Prepare eligibility marker
               if: steps.eligibility.outputs.update-level != ''

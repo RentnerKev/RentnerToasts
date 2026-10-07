@@ -52,6 +52,42 @@ export function App() {
 }
 ```
 
+### Load the animated toast surface on demand
+
+Use the separate entry when the initial application should defer Motion and
+icons until the first notification. It accepts the same props as ToastProvider:
+
+```tsx
+import { LazyToastProvider, useToast } from '@rentnerkev/toasts/lazy-provider'
+import { createToastStore } from '@rentnerkev/toasts/toast'
+
+const store = createToastStore()
+
+export function App() {
+    return (
+        <LazyToastProvider store={store} locale="en">
+            <MainApp />
+        </LazyToastProvider>
+    )
+}
+```
+
+Keep provider and hook imports on the lazy entry, and notification APIs on
+`./toast`; importing the regular root entry also loads the synchronous provider.
+`ToastProvider` remains synchronous. The lazy surface loads only when a toast
+exists. During loading, and permanently if its chunk cannot load, a local
+plain-text fallback displays the same titles and messages with localized close
+buttons, status/alert semantics, visible limits, and hover/focus timer pauses.
+This fallback does not animate or render Markdown links. Closing, updates, and
+normal expiry still work; notifications are never hidden merely because loading
+failed. A failed module import stays failed until the application reloads.
+
+For SSR, an empty store renders children without starting the import. With
+existing notifications, streaming SSR can resolve the Suspense boundary;
+`renderToString` emits the readable fallback and React may report its usual
+unfinished-Suspense recoverable hydration error. Create request-scoped stores
+rather than sharing server notification state.
+
 ### Isolated application roots
 
 The provider uses the documented default store when no `store` is supplied.
@@ -88,6 +124,12 @@ export function AdminRoot() {
 `useToast()` returns the API for the nearest provider. Code outside React can
 use the same scope with `adminStore.toast`. Each store owns its toasts,
 timers, pause state, and defaults.
+
+High-volume applications can opt into a bounded total queue with
+`createToastStore({ maxQueuedToasts: 100 })`. This includes visible toasts and
+removes the oldest queued notification when the limit is exceeded. The default
+queue remains unbounded; invalid, nonpositive, or noninteger values leave it
+unbounded.
 
 Hover and focus pauses belong to each mounted toast display. Unmounting a
 provider releases its displays' pauses; it preserves pauses held by other
@@ -328,3 +370,11 @@ bun run playground:dev
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+
+## Source architecture
+
+The public entries in `src/index.ts`, `toast.ts`, `types.ts`, `i18n.ts`, and `lazy-provider.ts` preserve the npm API. Internal code imports its defining module directly.
+
+Toast presentation, animation, context, owning logic hooks, and UI contracts live in `src/shared/Toast`. `useToastProviderLogic` owns defaults, store context, and interaction handoff for both providers; `useToastSurfaceLogic` owns each surface snapshot and localization. `useCustomToastLogic` owns animated notification interactions and timing. Focused hooks handle snapshot subscription and clipboard state; `useToastInteraction` owns pause claims and DOM handoff for both animated and fallback displays, including chunk failures.
+
+UI-free store, timing, messages, link tokenization, and utility matching live in `src/lib`; declarative defaults live in `src/config`. Unit and browser tests are centralized under `src/tests`, mirroring their owners. The playground separates its template, actions, logic hook, and typed contracts.

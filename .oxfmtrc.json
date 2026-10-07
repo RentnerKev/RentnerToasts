@@ -7,5 +7,20 @@
     "useTabs": false,
     "printWidth": 80,
     "sortPackageJson": false,
-    "ignorePatterns": ["dist/", "build/", "node_modules/", "bun.lock"]
+    "ignorePatterns": [
+        "**/dist/**",
+        "**/build/**",
+        "**/node_modules/**",
+        "**/drizzle/**",
+        "**/.env",
+        "**/.env.*",
+        "**/routeTree.gen.*",
+        "**/*.generated.*",
+        "**/target/**",
+        "test-results/**",
+        "playwright-report/**",
+        "coverage/**",
+        "bun.lock",
+        "playground/bun.lock"
+    ]
 }
