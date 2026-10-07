@@ -3,5 +3,5 @@ minimumReleaseAge = 86400
 linker = "isolated"
 globalStore = false
 [test]
-root = "test"
+root = "src/tests"
 pathIgnorePatterns = ["**/*.db.test.ts"]

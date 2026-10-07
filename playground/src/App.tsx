@@ -1,49 +1,6 @@
-import React from 'react'
-import { toast, ToastProvider } from '@rentnerkev/toasts'
+import { ToastActions } from './Components/ToastActions.js'
+import { ToastProvider } from '@rentnerkev/toasts'
 import { usePlaygroundLogic } from './Hooks/usePlaygroundLogic.js'
-
-function MainApp() {
-    function triggerAll() {
-        toast.success('Alles gut gelaufen 🚀', { title: 'Success' })
-        toast.error('Irgendwas ist komplett kaputt 💀', { title: 'Error' })
-        toast.info('Nur zur Info 👀', { title: 'Info' })
-    }
-
-    function triggerLinkToast() {
-        toast.info(
-            'Das ist der Link: [#45](https://localhost:3000/ticket/45) hast du ihn angeklickt?',
-            { title: 'Neues Ticket' },
-        )
-    }
-
-    return (
-        <div className="flex flex-col gap-2 p-10">
-            <button
-                className="bg-blue-600 text-white p-2 rounded"
-                data-testid="show-toasts"
-                onClick={triggerAll}
-            >
-                3 Toasts anzeigen
-            </button>
-
-            <button
-                className="bg-purple-600 text-white p-2 rounded"
-                data-testid="show-link-toast"
-                onClick={triggerLinkToast}
-            >
-                Toast mit Link anzeigen
-            </button>
-
-            <button
-                className="bg-gray-600 text-white p-2 rounded"
-                data-testid="dismiss-all"
-                onClick={toast.dismissAll}
-            >
-                Alle Toasts schließen
-            </button>
-        </div>
-    )
-}
 
 export function App() {
     const { state, handler } = usePlaygroundLogic()
@@ -64,7 +21,7 @@ export function App() {
                 </button>
             </div>
             <ToastProvider className="w-100" position="bottom-left">
-                <MainApp />
+                <ToastActions handler={handler} />
             </ToastProvider>
         </div>
     )

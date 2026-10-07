@@ -36,6 +36,7 @@ filter_unconventional = true
 split_commits = false
 commit_parsers = [
     { message = "^chore\\(release\\):", skip = true },
+    { message = "^(fix|chore|deps)\\(security\\):", group = "<!-- 00 -->🔒 Security" },
     { message = "^feat", group = "<!-- 01 -->🌟 Features" },
     { message = "^fix", group = "<!-- 02 -->🐛 Fixes" },
     { message = "^perf", group = "<!-- 03 -->⚡ Performance" },
