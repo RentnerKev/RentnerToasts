@@ -14,7 +14,7 @@ Dependabot covers root/playground Bun locks and pinned Actions, with a one-day v
 
 Checks: `tsc --noEmit -p .github/scripts/tsconfig.json`, automation unit tests under `src/tests/automation`, actionlint, and shellcheck. Verify actual GitHub job and npm OIDC behavior after integration; local tests never publish or merge.
 
-CI checks React 19.0 and 19.3. The normal quality job uses Motion 14; additional compatibility jobs exercise the declared Motion 12.38 and 13.0 minimum versions with strict types and packaged consumers, including synchronous/lazy providers, chunk failure, drag dismissal and clipboard feedback.
+CI checks React 19.0 and 19.3. The normal quality job uses Motion 14; additional compatibility jobs exercise the declared Motion 12.38 and 13.0 minimum versions with strict types and packaged consumers. Both public provider entries render synchronously. Consumer checks cover the first appearance of all four toast variants in default and light designs, with no extra JavaScript request or replacement surface, plus hover/focus timing, drag dismissal and clipboard feedback.
 
 Commit-based notes classify `fix(security):`, `chore(security):` and `deps(security):` ahead of routine changes; labels alone do not alter generated commit categories.
 
