@@ -375,3 +375,43 @@ The root `src/index.ts` and cross-owner `src/types.ts` preserve the public aggre
 Toast presentation, animation, context, owning logic hooks, and UI contracts live in `src/shared/Toast`. `useToastProviderLogic` owns provider defaults and store context; `useToastSurface` owns the notification snapshot, positioning and localization. `useCustomToastLogic` owns animated notification interactions and timing. Focused hooks handle snapshot subscription and clipboard state; `useToastInteraction` owns each display's hover/focus pause claims and forwarded DOM ref. Both public provider names use the same synchronous surface.
 
 UI-free store, timing, messages, link tokenization, and utility matching live in `src/lib`; declarative defaults live in `src/config`. Unit and browser tests are centralized under `src/tests`, mirroring their owners. The playground separates its template, actions, logic hook, and typed contracts.
+
+## AI and read-only MCP access
+
+The separate `@rentnerkev/toasts/ai` entry is for Node.js and Bun tooling. It reads
+only this installed package's manifest, README, usage guide, and built TypeScript
+declarations. It does not import React, mount UI, run examples, perform network
+requests, or require an MCP runtime. Keep it in server/tooling code.
+
+```ts
+import {
+    getPackageInfo,
+    getPackageApi,
+    getPackageDocumentation,
+    searchPackageDocumentation,
+    getPackageExamples,
+} from '@rentnerkev/toasts/ai'
+
+const info = getPackageInfo()
+const api = getPackageApi() // All public typed subpaths and dependent declarations
+const usage = getPackageDocumentation('usage') // Full guide, including CSS and providers
+const readme = getPackageDocumentation('readme')
+const matches = searchPackageDocumentation('messages') // Literal, case-insensitive lines
+const examples = getPackageExamples() // Fenced examples from the usage guide
+```
+
+`getPackageApi({ subpath: '.', symbol: 'ToastProvider' })` validates the symbol
+against the selected public entry and returns its complete declaration context.
+Unknown subpaths or symbols throw an error. File paths are not accepted. The
+`./ai` entry itself is excluded from this UI API context. The manifest's `exports`
+map remains available through `getPackageInfo()`.
+
+Public website discovery is planned at
+[llms.txt](https://packages.rentner.dev/llms.txt) and
+[the MCP endpoint](https://packages.rentner.dev/mcp). These addresses become
+available after the website deployment; this documentation does not claim the
+endpoint is already online. The website's read-only tools expose public package
+information, API declarations, usage guides, examples, and search, without
+accounts, write operations, or access to private project files. The installed
+`/ai` entry works locally without that service. Always use the documentation and
+declarations for the version installed in your project.

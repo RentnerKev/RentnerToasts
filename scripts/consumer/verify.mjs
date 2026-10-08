@@ -129,6 +129,19 @@ try {
             `${path} must include original sources`,
         )
     }
+    assert.ok(manifest.exports['./ai'], 'AI entry must be exported')
+    const ai = await import(
+        pathToFileURL(join(installedPackage, 'dist/ai.js')).href
+    )
+    assert.equal(ai.getPackageInfo().version, manifest.version)
+    assert.equal(ai.getPackageInfo().name, manifest.name)
+    assert.ok(ai.getPackageDocumentation().content.includes(manifest.name))
+    assert.ok(ai.getPackageApi().declarations.length > 0)
+    assert.ok(ai.getPackageExamples().length > 0)
+    assert.throws(() =>
+        ai.getPackageApi({ symbol: 'DefinitelyNotAPublicSymbol' }),
+    )
+    assert.ok(existsSync(join(installedPackage, 'docs/usage.md')))
     const entryPoints = Object.keys(manifest.exports)
         .filter(
             (entry) => entry !== './package.json' && entry !== './tailwind.css',

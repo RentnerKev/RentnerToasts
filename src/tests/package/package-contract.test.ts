@@ -35,6 +35,7 @@ describe('published package contract', () => {
             './types',
             './package.json',
             './lazy-provider',
+            './ai',
         ])
         expect(packageJson.exports['./toast']).toEqual({
             types: './dist/lib/ToastStore/toastApi.d.ts',

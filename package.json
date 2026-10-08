@@ -19,7 +19,8 @@
         "dist",
         "tailwind.css",
         "README.md",
-        "LICENSE"
+        "LICENSE",
+        "docs/usage.md"
     ],
     "sideEffects": [
         "./tailwind.css"
@@ -99,6 +100,10 @@
         "./lazy-provider": {
             "types": "./dist/shared/Toast/Components/ToastProvider.d.ts",
             "import": "./dist/shared/Toast/Components/ToastProvider.js"
+        },
+        "./ai": {
+            "types": "./dist/ai.d.ts",
+            "import": "./dist/ai.js"
         }
     },
     "packageManager": "bun@1.4.2"
