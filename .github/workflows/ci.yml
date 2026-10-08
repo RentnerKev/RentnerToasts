@@ -71,7 +71,9 @@ jobs:
               run: bun install --frozen-lockfile
 
             - name: Select React version
-              run: bun add --no-save react@${{ matrix.react-version }} react-dom@${{ matrix.react-version }} @types/react@${{ matrix.react-version }} @types/react-dom@${{ matrix.react-version }}
+              run: |
+                  bun add --no-save react@${{ matrix.react-version }} react-dom@${{ matrix.react-version }} @types/react@${{ matrix.react-version }} @types/react-dom@${{ matrix.react-version }}
+                  bun add --cwd playground --no-save react@${{ matrix.react-version }} react-dom@${{ matrix.react-version }} @types/react@${{ matrix.react-version }} @types/react-dom@${{ matrix.react-version }}
 
             - name: Install Playwright browsers
               run: bunx playwright install --with-deps chromium firefox webkit
