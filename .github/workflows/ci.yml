@@ -82,3 +82,45 @@ jobs:
               env:
                   CONSUMER_REACT_VERSION: ${{ matrix.react-version }}
               run: bun run typecheck && bun run test && bun run build && bun run pack:consumer
+
+    motion-compatibility:
+        name: Motion ${{ matrix.motion-version }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                motion-version:
+                    - 12.38.0
+                    - 13.0.0
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+
+            - name: Set up Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+              with:
+                  bun-version: 1.4.2
+
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            - name: Install playground dependencies
+              working-directory: playground
+              run: bun install --frozen-lockfile
+
+            - name: Select Motion version
+              run: |
+                  bun add --no-save motion@${{ matrix.motion-version }}
+                  bun add --cwd playground --no-save motion@${{ matrix.motion-version }}
+
+            - name: Install Playwright browsers
+              run: bunx playwright install --with-deps chromium firefox webkit
+
+            - name: Verify Motion compatibility
+              env:
+                  CONSUMER_MOTION_VERSION: ${{ matrix.motion-version }}
+              run: bun run typecheck && bun run test && bun run build && bun run pack:consumer

@@ -13,13 +13,28 @@ function Defaults({ store }: { store: ReturnType<typeof createToastStore> }) {
 function Controls() {
     const toast = useToast()
     return (
-        <button
-            type="button"
-            className="px-4 py-2"
-            onClick={() => toast.info('Consumer notification', { duration: 0 })}
-        >
-            Show toast
-        </button>
+        <>
+            <button
+                type="button"
+                className="px-4 py-2"
+                onClick={() =>
+                    toast.info('Consumer notification', { duration: 0 })
+                }
+            >
+                Show toast
+            </button>
+            <button
+                type="button"
+                onClick={() =>
+                    toast.error('Consumer error details', {
+                        title: 'Consumer error',
+                        duration: 0,
+                    })
+                }
+            >
+                Show error toast
+            </button>
+        </>
     )
 }
 

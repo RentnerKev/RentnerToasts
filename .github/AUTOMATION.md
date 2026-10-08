@@ -14,6 +14,8 @@ Dependabot covers root/playground Bun locks and pinned Actions, with a one-day v
 
 Checks: `tsc --noEmit -p .github/scripts/tsconfig.json`, automation unit tests under `src/tests/automation`, actionlint, and shellcheck. Verify actual GitHub job and npm OIDC behavior after integration; local tests never publish or merge.
 
+CI checks React 19.0 and 19.3. The normal quality job uses Motion 14; additional compatibility jobs exercise the declared Motion 12.38 and 13.0 minimum versions with strict types and packaged consumers, including synchronous/lazy providers, chunk failure, drag dismissal and clipboard feedback.
+
 Commit-based notes classify `fix(security):`, `chore(security):` and `deps(security):` ahead of routine changes; labels alone do not alter generated commit categories.
 
 Provider scripts follow responsibility: process orchestration in shell, structured validation/API logic in TypeScript. Shared repository identity is validated centrally by `scripts/lib/repository.ts`; release and dependency-update contracts live in their owning `Types/` directories. GitHub/event, registry and packed-artifact data are validated before use.

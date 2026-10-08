@@ -25,6 +25,7 @@ export async function check({ page, expect }) {
     await page.getByLabel('Toast style').selectOption('sm:w-96')
     await expect.poll(style).toEqual({ x: 16, y: 16, width: 320 })
     await page.setViewportSize({ width: 800, height: 640 })
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
     await expect.poll(style).toEqual({ x: 16, y: 16, width: 384 })
     await page.setViewportSize({ width: 320, height: 640 })
     await page.getByLabel('Toast style').selectOption('')
@@ -37,8 +38,70 @@ export async function check({ page, expect }) {
     await toast.getByRole('button', { name: 'Close notification' }).click()
     await expect(toast).toBeHidden()
 
+    await page.setViewportSize({ width: 800, height: 640 })
+    await page.getByRole('button', { name: 'Show toast', exact: true }).click()
+    await expect(toast).toHaveCSS('opacity', '1')
+    const dragBounds = await toast.boundingBox()
+    expect(dragBounds).not.toBeNull()
+    const dragX = dragBounds.x + 60
+    const dragY = dragBounds.y + dragBounds.height / 2
+    await page.mouse.move(dragX, dragY)
+    await page.mouse.down()
+    await page.mouse.move(dragX + 160, dragY, { steps: 12 })
+    await expect
+        .poll(async () => (await toast.boundingBox())?.x)
+        .toBeGreaterThan(dragBounds.x + 60)
+    await page.mouse.up()
+    await expect(toast).toBeHidden()
+
     await page.clock.install()
     await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.evaluate(() => {
+        let copiedText = ''
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: {
+                async writeText(value) {
+                    copiedText = value
+                },
+                async readText() {
+                    return copiedText
+                },
+            },
+        })
+    })
+    await page.getByRole('button', { name: 'Show error toast' }).click()
+    const errorToast = page.getByRole('alert')
+    const copyButton = errorToast.getByRole('button', {
+        name: 'Copy error message',
+    })
+    await copyButton.click()
+    await expect
+        .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+        .toBe('Consumer error\nConsumer error details')
+    await expect(
+        errorToast.getByRole('button', { name: 'Error message copied' }),
+    ).toBeVisible()
+    await page.clock.fastForward(1500)
+    await expect(copyButton).toBeVisible()
+    await copyButton.click()
+    await expect(
+        errorToast.getByRole('button', { name: 'Error message copied' }),
+    ).toBeVisible()
+    await page.evaluate(() => {
+        navigator.clipboard.writeText = async () => {
+            throw new Error('Clipboard permission denied')
+        }
+    })
+    await errorToast
+        .getByRole('button', { name: 'Error message copied' })
+        .click()
+    await expect(copyButton).toBeVisible()
+    await page.clock.fastForward(1500)
+    await expect(copyButton).toBeVisible()
+    await errorToast.getByRole('button', { name: 'Close notification' }).click()
+    await expect(errorToast).toBeHidden()
+
     await page
         .getByRole('button', { name: 'Show timed toast', exact: true })
         .click()
