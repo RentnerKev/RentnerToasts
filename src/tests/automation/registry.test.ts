@@ -4,7 +4,7 @@ import {
     registryPackagePath,
     registryVersion,
     waitForPublication,
-} from '../../../.github/scripts/release/registry'
+} from '../../../.github/scripts/release/registry.ts'
 import type { RegistrySnapshot } from '../../../.github/scripts/release/Types/registry.types'
 
 const expected = {

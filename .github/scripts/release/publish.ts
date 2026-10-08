@@ -1,9 +1,10 @@
-import type { PackedArtifact } from '../lib/Types/automation.types.ts'
+import { isPackedArtifacts } from './releaseValidation.ts'
+import { repositoryPolicy } from '../lib/repository.ts'
 import { createHash } from 'node:crypto'
 import { readRegularFile } from '../lib/regularFile.ts'
 import { resolve, basename } from 'node:path'
-import { command, isMain } from '../lib/runtime.ts'
-import { policy, verifyCheckout } from './identity.ts'
+import { command, isMain, parseJson } from '../lib/runtime.ts'
+import { verifyCheckout } from './identity.ts'
 import {
     assertArtifactIdentity,
     assertChannelProgression,
@@ -14,10 +15,11 @@ import {
 
 if (isMain(import.meta.url)) {
     const identity = verifyCheckout()
-    const { packageName } = policy()
-    const packs = JSON.parse(
+    const { packageName } = repositoryPolicy()
+    const packs = parseJson(
         command('npm', ['pack', '--json', '--ignore-scripts']),
-    ) as PackedArtifact[]
+        isPackedArtifacts,
+    )
     if (
         packs.length !== 1 ||
         basename(packs[0].filename) !== packs[0].filename ||

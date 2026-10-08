@@ -1,7 +1,8 @@
 import type {
+    ToastStoreCore,
     ToastTimer,
     ToastProviderDefaultsRegistrar,
-} from './Types/toast-store-internal.types.js'
+} from './Types/toast-store-internal.types.ts'
 import type {
     Toast,
     ToastDefaults,
@@ -11,17 +12,15 @@ import type {
     ToastStoreOptions,
     ToastType,
     ToastUpdateOptions,
-} from './Types/toast.types.js'
+} from './Types/toast.types.ts'
 
 import {
     DEFAULT_TOAST_DURATION,
     getRemainingToastTime,
     normalizeToastDuration,
-} from '../ToastTiming/toastTiming.js'
+} from '../ToastTiming/toastTiming.ts'
 
-export const DEFAULT_MAX_VISIBLE_TOASTS = 3
-
-export type { ToastDefaults } from './Types/toast.types.js'
+const DEFAULT_MAX_VISIBLE_TOASTS = 3
 
 function normalizeMaxVisibleToasts(
     value: number | undefined,
@@ -141,8 +140,6 @@ export function copyToastProviderDefaultsRegistrar(
     const register = toastProviderDefaultsRegistrars.get(source)
     if (register) toastProviderDefaultsRegistrars.set(destination, register)
 }
-
-export interface ToastStoreCore extends Omit<ToastStore, 'toast'> {}
 
 export function createToastStoreCore(
     options: ToastStoreOptions = {},
@@ -469,55 +466,3 @@ export function createToastStoreCore(
 }
 
 export const defaultToastStore = createToastStoreCore()
-
-export function getToastDefaults() {
-    return defaultToastStore.getToastDefaults()
-}
-
-export function configureToastDefaults(
-    defaults: Partial<ToastDefaults>,
-): ToastDefaults {
-    return defaultToastStore.configureToastDefaults(defaults)
-}
-
-export function restoreToastDefaults(defaults: ToastDefaults) {
-    defaultToastStore.restoreToastDefaults(defaults)
-}
-
-export function subscribeToToasts(listener: () => void) {
-    return defaultToastStore.subscribeToToasts(listener)
-}
-
-export function getToastSnapshot() {
-    return defaultToastStore.getToastSnapshot()
-}
-
-export function createToast(
-    content: string,
-    title?: string,
-    type: ToastType = 'success',
-    duration?: number,
-): ToastId {
-    return defaultToastStore.createToast(content, title, type, duration)
-}
-
-export function updateToast(id: ToastId, options: ToastUpdateOptions) {
-    return defaultToastStore.updateToast(id, options)
-}
-
-export function removeToast(id: ToastId) {
-    defaultToastStore.removeToast(id)
-}
-
-export function setToastPauseReason(
-    id: ToastId,
-    reason: ToastPauseReason,
-    paused: boolean,
-    owner?: symbol,
-) {
-    defaultToastStore.setToastPauseReason(id, reason, paused, owner)
-}
-
-export function clearAllToasts() {
-    defaultToastStore.clearAllToasts()
-}

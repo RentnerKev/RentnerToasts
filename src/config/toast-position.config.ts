@@ -1,4 +1,4 @@
-import type { ToastPosition } from '../lib/ToastStore/Types/toast.types.js'
+import type { ToastPosition } from '../lib/ToastStore/Types/toast.types.ts'
 export const toastPositionClasses: Record<ToastPosition, string> = {
     'top-left': 'top-0 left-0 p-4 flex-col-reverse',
     'top-right': 'top-0 right-0 p-4 flex-col-reverse',

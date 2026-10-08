@@ -1,10 +1,11 @@
-import type {
-    SelectedRelease,
-    VerifiedRelease,
-    PackageIdentity,
-} from '../lib/Types/automation.types.ts'
+import type { SelectedRelease, VerifiedRelease } from './Types/release.types.ts'
+import { repositoryPolicy } from '../lib/repository.ts'
+import {
+    isPackageIdentity,
+    isReleaseEvent,
+    isReleaseMetadata,
+} from './releaseValidation.ts'
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import {
     containsControlCharacters,
     api,
@@ -12,13 +13,9 @@ import {
     eventData,
     isMain,
     output,
-    requiredEnv,
+    parseJson,
 } from '../lib/runtime.ts'
-import type {
-    ReleaseMetadata,
-    ReleasePolicy,
-    ReleaseEvent,
-} from '../lib/Types/automation.types.ts'
+import type { ReleaseMetadata } from './Types/release.types.ts'
 
 export function stableVersion(tag: string): string {
     if (
@@ -41,28 +38,15 @@ export function validRelease(release: ReleaseMetadata, tag: string): boolean {
     )
 }
 
-export function policy(): ReleasePolicy {
-    const configuration = JSON.parse(
-        readFileSync(
-            fileURLToPath(
-                new URL('../../release-policy.json', import.meta.url),
-            ),
-            'utf8',
-        ),
-    ) as ReleasePolicy
-    if (requiredEnv('GITHUB_REPOSITORY') !== configuration.repository)
-        throw new Error('Repository identity mismatch')
-    return configuration
-}
-
 export function selectedRelease(): SelectedRelease {
-    const { repository } = policy()
-    const event = eventData<ReleaseEvent>()
+    const { repository } = repositoryPolicy()
+    const event = eventData(isReleaseEvent)
     const tag = event.release?.tag_name ?? event.inputs?.tag
     if (typeof tag !== 'string') throw new Error('Missing release identity')
     const version = stableVersion(tag)
-    const release = api<ReleaseMetadata>(
+    const release = api(
         `repos/${repository}/releases/tags/${tag}`,
+        isReleaseMetadata,
     )
     if (
         !validRelease(release, tag) ||
@@ -74,10 +58,11 @@ export function selectedRelease(): SelectedRelease {
 
 export function verifyCheckout(): VerifiedRelease {
     const selected = selectedRelease()
-    const { packageName } = policy()
-    const manifest = JSON.parse(
+    const { packageName } = repositoryPolicy()
+    const manifest = parseJson(
         readFileSync('package.json', 'utf8'),
-    ) as PackageIdentity
+        isPackageIdentity,
+    )
     if (manifest.name !== packageName || manifest.version !== selected.version)
         throw new Error('Tag must match the committed package identity/version')
     const commit = command('git', [

@@ -37,20 +37,20 @@ describe('published package contract', () => {
             './lazy-provider',
         ])
         expect(packageJson.exports['./toast']).toEqual({
-            types: './dist/toast.d.ts',
-            import: './dist/toast.js',
+            types: './dist/lib/ToastStore/toastApi.d.ts',
+            import: './dist/lib/ToastStore/toastApi.js',
         })
         expect(packageJson.exports['./messages']).toEqual({
-            types: './dist/i18n.d.ts',
-            import: './dist/i18n.js',
+            types: './dist/lib/Messages/toastMessages.d.ts',
+            import: './dist/lib/Messages/toastMessages.js',
         })
         expect(packageJson.exports['./types']).toEqual({
             types: './dist/types.d.ts',
             import: './dist/types.js',
         })
         expect(packageJson.exports['./lazy-provider']).toEqual({
-            types: './dist/lazy-provider.d.ts',
-            import: './dist/lazy-provider.js',
+            types: './dist/shared/Toast/Components/LazyToastProvider.d.ts',
+            import: './dist/shared/Toast/Components/LazyToastProvider.js',
         })
         expect(packageJson.exports['./package.json']).toBe('./package.json')
     })

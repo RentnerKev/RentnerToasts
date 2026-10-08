@@ -1,7 +1,7 @@
-import type { ToastFallbackProps } from '../Types/toast-logic.types.js'
-import { useToastSurfaceLogic } from '../Hooks/useToastSurfaceLogic.js'
-import { useToastInteraction } from '../Hooks/useToastInteraction.js'
-import type { CustomToastProps } from '../Types/toast-ui.types.js'
+import type { ToastFallbackProps } from '../Types/toast-logic.types.ts'
+import { useToastSurface } from '../Hooks/useToastSurface.ts'
+import { useToastInteraction } from '../Hooks/useToastInteraction.ts'
+import type { CustomToastProps } from '../Types/toast-ui.types.ts'
 
 function FallbackNotification({
     toast,
@@ -59,7 +59,7 @@ export function ToastFallback({
     customDesign,
     className,
 }: ToastFallbackProps) {
-    const { state, handler } = useToastSurfaceLogic({
+    const { state, handler } = useToastSurface({
         position,
         locale,
         messages,

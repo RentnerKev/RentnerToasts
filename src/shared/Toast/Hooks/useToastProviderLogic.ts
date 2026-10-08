@@ -1,13 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useToastSnapshot } from './useToastSnapshot.js'
-import { defaultToastStore } from '../../../toast.js'
-import { registerToastProviderDefaults } from '../../../lib/ToastStore/toastStore.js'
-import type { ToastStore } from '../../../lib/ToastStore/Types/toast.types.js'
-import type { ToastProviderProps } from '../Types/toast-ui.types.js'
+import { useToastSnapshot } from './useToastSnapshot.ts'
+import { defaultToastStore } from '../../../lib/ToastStore/toastApi.ts'
+import { registerToastProviderDefaults } from '../../../lib/ToastStore/toastStore.ts'
+import type { ToastStore } from '../../../lib/ToastStore/Types/toast.types.ts'
 import type {
     ToastInteractionEntries,
     ToastProviderLogicResult,
-} from '../Types/toast-logic.types.js'
+    ToastProviderLogicProps,
+} from '../Types/toast-logic.types.ts'
 
 const useIsomorphicLayoutEffect =
     typeof window === 'undefined' ? useEffect : useLayoutEffect
@@ -21,7 +21,7 @@ export function useToastProviderLogic({
     messages,
     defaultDuration,
     maxVisibleToasts,
-}: ToastProviderProps): ToastProviderLogicResult {
+}: ToastProviderLogicProps): ToastProviderLogicResult {
     const [defaultsOwner] = useState(() => Symbol('toast-provider-defaults'))
     const defaultsDisposers = useRef(new Map<ToastStore, () => void>())
 

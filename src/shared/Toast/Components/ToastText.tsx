@@ -1,4 +1,4 @@
-import type { ToastTextProps } from '../Types/toast-logic.types.js'
+import type { ToastTextProps } from '../Types/toast-logic.types.ts'
 export function ToastText({ tokens, className }: ToastTextProps) {
     return tokens.map((token, index) =>
         token.kind === 'text' ? (

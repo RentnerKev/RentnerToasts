@@ -17,6 +17,13 @@ test.describe('toast playground', () => {
             'Alles gut gelaufen',
         )
 
+        // Contrast analysis needs the final colors after the fade-in animation.
+        await Promise.all([
+            expect(page.getByRole('status').nth(0)).toHaveCSS('opacity', '1'),
+            expect(page.getByRole('status').nth(1)).toHaveCSS('opacity', '1'),
+            expect(page.getByRole('alert')).toHaveCSS('opacity', '1'),
+        ])
+
         const results = await new AxeBuilder({ page })
             .include('section[aria-label]')
             .analyze()

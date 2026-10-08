@@ -373,8 +373,8 @@ MIT. See [LICENSE](../LICENSE).
 
 ## Source architecture
 
-The public entries in `src/index.ts`, `toast.ts`, `types.ts`, `i18n.ts`, and `lazy-provider.ts` preserve the npm API. Internal code imports its defining module directly.
+The root `src/index.ts` and cross-owner `src/types.ts` preserve the public aggregate exports. The `./toast`, `./messages`, and `./lazy-provider` npm subpaths map directly to their defining modules in `src/lib/ToastStore/toastApi.ts`, `src/lib/Messages/toastMessages.ts`, and `src/shared/Toast/Components/LazyToastProvider.tsx`. Internal code imports its defining module directly.
 
-Toast presentation, animation, context, owning logic hooks, and UI contracts live in `src/shared/Toast`. `useToastProviderLogic` owns defaults, store context, and interaction handoff for both providers; `useToastSurfaceLogic` owns each surface snapshot and localization. `useCustomToastLogic` owns animated notification interactions and timing. Focused hooks handle snapshot subscription and clipboard state; `useToastInteraction` owns pause claims and DOM handoff for both animated and fallback displays, including chunk failures.
+Toast presentation, animation, context, owning logic hooks, and UI contracts live in `src/shared/Toast`. `useToastProviderLogic` owns defaults, store context, and interaction handoff for both providers; `useToastSurface` shares snapshot, positioning, and localization between the animated and fallback surfaces. `useCustomToastLogic` owns animated notification interactions and timing. Focused hooks handle snapshot subscription and clipboard state; `useToastInteraction` owns pause claims and DOM handoff for both animated and fallback displays, including chunk failures.
 
 UI-free store, timing, messages, link tokenization, and utility matching live in `src/lib`; declarative defaults live in `src/config`. Unit and browser tests are centralized under `src/tests`, mirroring their owners. The playground separates its template, actions, logic hook, and typed contracts.

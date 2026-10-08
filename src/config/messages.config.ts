@@ -1,7 +1,7 @@
 import type {
     ToastLocale,
     ToastMessages,
-} from '../lib/Messages/Types/messages.types.js'
+} from '../lib/Messages/Types/messages.types.ts'
 export const toastMessageCatalog: Record<ToastLocale, ToastMessages> = {
     de: {
         regionLabel: 'Benachrichtigungen',

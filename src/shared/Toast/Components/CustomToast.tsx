@@ -1,13 +1,13 @@
-import { ToastText } from './ToastText.js'
-import { ToastIcon } from './ToastIcon.js'
+import { ToastText } from './ToastText.tsx'
+import { ToastIcon } from './ToastIcon.tsx'
 import { Check, Copy, X } from 'lucide-react'
-import type { CustomToastComponentProps } from '../Types/toast-logic.types.js'
+import type { CustomToastComponentProps } from '../Types/toast-logic.types.ts'
 import { motion } from 'motion/react'
 import {
     closeButtonIconTransition,
     closeButtonIconVariants,
-} from '../Animations/toastAnimations.js'
-import { useCustomToastLogic } from '../Hooks/useCustomToastLogic.js'
+} from '../Animations/toastAnimations.ts'
+import { useCustomToastLogic } from '../Hooks/useCustomToastLogic.ts'
 
 export function CustomToast({
     toast,

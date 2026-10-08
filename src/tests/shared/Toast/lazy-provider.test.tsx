@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { LazyToastProvider } from '../../../shared/Toast/Components/LazyToastProvider'
-import { ToastProvider } from '../../../shared/Toast/Components/ToastProvider'
-import { createToastStore } from '../../../toast'
+import { LazyToastProvider } from '../../../shared/Toast/Components/LazyToastProvider.tsx'
+import { ToastProvider } from '../../../shared/Toast/Components/ToastProvider.tsx'
+import { createToastStore } from '../../../lib/ToastStore/toastApi.ts'
 
 test('renders empty lazy providers during SSR without a Suspense boundary', () => {
     const store = createToastStore()

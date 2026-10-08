@@ -1,8 +1,8 @@
 import { useMemo, useSyncExternalStore } from 'react'
-import { useToastStore } from './useToastStore.js'
-import type { ToastStore } from '../../../lib/ToastStore/Types/toast.types.js'
+import { useToastStore } from './useToastStore.ts'
+import type { ToastStore } from '../../../lib/ToastStore/Types/toast.types.ts'
 
-import type { ToastSnapshotResult } from '../Types/toast-logic.types.js'
+import type { ToastSnapshotResult } from '../Types/toast-logic.types.ts'
 
 export function useToastSnapshot(store?: ToastStore): ToastSnapshotResult {
     const contextStore = useToastStore()

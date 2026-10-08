@@ -5,18 +5,18 @@ import type {
     toastAnimate,
     toastDragAnimation,
     toastTransition,
-} from '../Animations/toastAnimations.js'
+} from '../Animations/toastAnimations.ts'
 import type { MotionProps } from 'motion/react'
 import type {
     ToastLocale,
     ToastMessages,
-} from '../../../lib/Messages/Types/messages.types.js'
+} from '../../../lib/Messages/Types/messages.types.ts'
 
 import type {
     Toast,
     ToastStore,
     ToastPosition,
-} from '../../../lib/ToastStore/Types/toast.types.js'
+} from '../../../lib/ToastStore/Types/toast.types.ts'
 export interface CustomToastProps {
     toast: Toast
     position: ToastPosition

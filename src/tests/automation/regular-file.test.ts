@@ -7,8 +7,11 @@ import { basename, join, resolve, sep } from 'node:path'
 import {
     readRegularDescriptor,
     readRegularFile,
-} from '../../../.github/scripts/lib/regularFile'
-import { readNotes, startMarker } from '../../../.github/scripts/release/notes'
+} from '../../../.github/scripts/lib/regularFile.ts'
+import {
+    readNotes,
+    startMarker,
+} from '../../../.github/scripts/release/notes.ts'
 
 const directories: string[] = []
 const supportsNoFollow =

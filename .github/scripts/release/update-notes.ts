@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path'
 import { api, command, isMain, requiredEnv } from '../lib/runtime.ts'
 import { verifyCheckout, validRelease } from './identity.ts'
 import { readNotes, releaseBody } from './notes.ts'
-import type { ReleaseMetadata } from '../lib/Types/automation.types.ts'
+import { isReleaseMetadata } from './releaseValidation.ts'
 
 if (isMain(import.meta.url)) {
     const selected = verifyCheckout()
@@ -13,8 +13,9 @@ if (isMain(import.meta.url)) {
         '.github/assets/release-banners/new-release-banner.png',
     )
     const bannerHash = `sha256:${createHash('sha256').update(readFileSync(banner)).digest('hex')}`
-    const latest = api<ReleaseMetadata>(
+    const latest = api(
         `repos/${selected.repository}/releases/${selected.release.id}`,
+        isReleaseMetadata,
     )
     if (!validRelease(latest, selected.tag))
         throw new Error('Release changed before asset upload')
@@ -59,8 +60,9 @@ if (isMain(import.meta.url)) {
         selected.repository,
         server,
     )
-    const beforeWrite = api<ReleaseMetadata>(
+    const beforeWrite = api(
         `repos/${selected.repository}/releases/${selected.release.id}`,
+        isReleaseMetadata,
     )
     if (
         !validRelease(beforeWrite, selected.tag) ||
@@ -75,8 +77,9 @@ if (isMain(import.meta.url)) {
             'PATCH',
             { body },
         )
-    const published = api<ReleaseMetadata>(
+    const published = api(
         `repos/${selected.repository}/releases/${selected.release.id}`,
+        isReleaseMetadata,
     )
     if (!validRelease(published, selected.tag) || published.body !== body)
         throw new Error('Published release notes verification failed')

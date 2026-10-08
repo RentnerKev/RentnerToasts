@@ -1,11 +1,9 @@
-import type {
-    NpmChannels,
-    PublishedPackage,
-} from '../lib/Types/automation.types.ts'
+import type { NpmChannels, PublishedPackage } from './Types/registry.types.ts'
 import type {
     ExpectedArtifact,
     RegistrySnapshot,
 } from './Types/registry.types.ts'
+import { isRecord } from '../lib/runtime.ts'
 import { stableVersion } from './identity.ts'
 
 async function registryResponse(url: string): Promise<Response> {
@@ -54,7 +52,20 @@ export async function lookupPackage(
     if (response.status === 404) return undefined
     if (!response.ok)
         throw new Error('Registry lookup failed; publication is not safe')
-    return (await response.json()) as PublishedPackage
+    const value: unknown = await response.json()
+    if (
+        !isRecord(value) ||
+        typeof value.name !== 'string' ||
+        typeof value.version !== 'string' ||
+        !isRecord(value.dist) ||
+        typeof value.dist.integrity !== 'string'
+    )
+        throw new Error('Invalid registry package response')
+    return {
+        name: value.name,
+        version: value.version,
+        dist: { integrity: value.dist.integrity },
+    }
 }
 
 export function assertArtifactIdentity(
@@ -78,7 +89,13 @@ export async function lookupChannels(name: string): Promise<NpmChannels> {
     )
     if (response.status === 404) return {}
     if (!response.ok) throw new Error('Registry channel lookup failed')
-    return (await response.json()) as NpmChannels
+    const value: unknown = await response.json()
+    if (
+        !isRecord(value) ||
+        (value.latest !== undefined && typeof value.latest !== 'string')
+    )
+        throw new Error('Invalid registry channel response')
+    return { latest: value.latest }
 }
 
 export function assertChannelProgression(

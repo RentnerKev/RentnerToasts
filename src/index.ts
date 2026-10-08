@@ -1,9 +1,9 @@
-export { LazyToastProvider } from './shared/Toast/Components/LazyToastProvider.js'
-export { ToastProvider } from './shared/Toast/Components/ToastProvider.js'
-export { createToastStore, toast } from './toast.js'
-export { useToast } from './shared/Toast/Hooks/useToastStore.js'
-export { resolveToastMessages } from './lib/Messages/toastMessages.js'
-export { toastMessageCatalog } from './config/messages.config.js'
+export { LazyToastProvider } from './shared/Toast/Components/LazyToastProvider.tsx'
+export { ToastProvider } from './shared/Toast/Components/ToastProvider.tsx'
+export { createToastStore, toast } from './lib/ToastStore/toastApi.ts'
+export { useToast } from './shared/Toast/Hooks/useToastStore.ts'
+export { resolveToastMessages } from './lib/Messages/toastMessages.ts'
+export { toastMessageCatalog } from './config/messages.config.ts'
 export type {
     ToastApi,
     ToastContentOptions,
@@ -20,13 +20,13 @@ export type {
     ToastStoreOptions,
     ToastType,
     ToastUpdateOptions,
-} from './lib/ToastStore/Types/toast.types.js'
+} from './lib/ToastStore/Types/toast.types.ts'
 export type {
     ToastLocale,
     ToastMessages,
-} from './lib/Messages/Types/messages.types.js'
+} from './lib/Messages/Types/messages.types.ts'
 
 export type {
     ToastCustomDesign,
     ToastProviderProps,
-} from './shared/Toast/Types/toast-ui.types.js'
+} from './shared/Toast/Types/toast-ui.types.ts'

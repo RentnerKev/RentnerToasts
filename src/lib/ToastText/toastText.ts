@@ -1,4 +1,4 @@
-import type { ToastTextToken } from './Types/toast-text.types.js'
+import type { ToastTextToken } from './Types/toast-text.types.ts'
 export function isSafeToastLink(url: string) {
     try {
         const parsedUrl = new URL(url, 'https://rentnertoasts.invalid')

@@ -6,12 +6,12 @@ import {
     ToastProvider,
     toast,
     useToast,
-} from '../../../index'
-import type { ToastStore } from '../../../types'
+} from '../../../index.ts'
+import type { ToastStore } from '../../../types.ts'
 import {
-    getToastSnapshot,
+    defaultToastStore,
     registerToastProviderDefaults,
-} from '../../../lib/ToastStore/toastStore'
+} from '../../../lib/ToastStore/toastStore.ts'
 
 const stores: ToastStore[] = []
 
@@ -283,7 +283,7 @@ describe('isolated toast stores', () => {
                 type: 'success',
             }),
         ])
-        expect(getToastSnapshot()).toEqual([])
+        expect(defaultToastStore.getToastSnapshot()).toEqual([])
     })
 
     test('keeps timer and pause state local to each store', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from 'bun:test'
-import { createToastStore } from '../../../toast'
+import { createToastStore } from '../../../lib/ToastStore/toastApi.ts'
 
 describe('indexed toast queue', () => {
     test('resubscribing during notification does not repeat the same callback', () => {

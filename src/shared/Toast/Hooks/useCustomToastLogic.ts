@@ -1,19 +1,19 @@
-import { hasTailwindUtility } from '../../../lib/ToastText/tailwindUtility.js'
-import { parseToastText } from '../../../lib/ToastText/toastText.js'
-import { useToastInteraction } from './useToastInteraction.js'
+import { hasTailwindUtility } from '../../../lib/ToastText/tailwindUtility.ts'
+import { parseToastText } from '../../../lib/ToastText/toastText.ts'
+import { useToastInteraction } from './useToastInteraction.ts'
 import { useMemo, type MouseEvent, type Ref } from 'react'
 import { useReducedMotion, type MotionProps } from 'motion/react'
-import type { CustomToastProps } from '../Types/toast-ui.types.js'
-import type { CustomToastLogicResult } from '../Types/toast-logic.types.js'
+import type { CustomToastProps } from '../Types/toast-ui.types.ts'
+import type { CustomToastLogicResult } from '../Types/toast-logic.types.ts'
 import {
     getToastExitAnimation,
     getToastInitialAnimation,
     toastAnimate,
     toastDragAnimation,
     toastTransition,
-} from '../Animations/toastAnimations.js'
-import { useCopyToastMessage } from './useCopyToastMessage.js'
-import { getRemainingToastTime } from '../../../lib/ToastTiming/toastTiming.js'
+} from '../Animations/toastAnimations.ts'
+import { useCopyToastMessage } from './useCopyToastMessage.ts'
+import { getRemainingToastTime } from '../../../lib/ToastTiming/toastTiming.ts'
 
 export function useCustomToastLogic(
     { toast, position, onRemove, customDesign, className }: CustomToastProps,
@@ -164,7 +164,10 @@ export function useCustomToastLogic(
         handler: {
             handleCopyError,
             handleDragEnd,
-            ...interactionHandler,
+            handleMouseEnter: interactionHandler.handleMouseEnter,
+            handleMouseLeave: interactionHandler.handleMouseLeave,
+            handleFocus: interactionHandler.handleFocus,
+            handleBlur: interactionHandler.handleBlur,
         },
     }
 }

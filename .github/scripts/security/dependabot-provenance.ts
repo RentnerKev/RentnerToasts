@@ -1,4 +1,4 @@
-import type { Provenance } from '../lib/Types/automation.types.ts'
+import type { Provenance } from './Types/dependabot.types.ts'
 
 export function eligibleDependabot(provenance: Provenance): boolean {
     const { run, pr, repository, runId, attempt, head, prNumber, workflowId } =

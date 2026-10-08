@@ -1,20 +1,18 @@
+import type { ReleaseMetadata } from '../../../.github/scripts/release/Types/release.types.ts'
 import { describe, expect, test } from 'bun:test'
-import { eligibleDependabot } from '../../../.github/scripts/security/dependabot-provenance'
-import { updateLevel } from '../../../.github/scripts/security/classify-update'
+import { eligibleDependabot } from '../../../.github/scripts/security/dependabot-provenance.ts'
+import { updateLevel } from '../../../.github/scripts/security/classify-update.ts'
 import {
     stableVersion,
     validRelease,
-} from '../../../.github/scripts/release/identity'
+} from '../../../.github/scripts/release/identity.ts'
 import {
     releaseBody,
     startMarker,
     endMarker,
-} from '../../../.github/scripts/release/notes'
-import { validPrTitle } from '../../../.github/scripts/ci/validate-pr-title'
-import type {
-    Provenance,
-    ReleaseMetadata,
-} from '../../../.github/scripts/lib/Types/automation.types'
+} from '../../../.github/scripts/release/notes.ts'
+import { validPrTitle } from '../../../.github/scripts/ci/validate-pr-title.ts'
+import type { Provenance } from '../../../.github/scripts/security/Types/dependabot.types'
 
 const head = 'a'.repeat(40)
 function provenance(): Provenance {

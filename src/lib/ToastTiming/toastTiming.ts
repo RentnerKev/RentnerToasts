@@ -1,4 +1,4 @@
-import type { Toast } from '../ToastStore/Types/toast.types.js'
+import type { Toast } from '../ToastStore/Types/toast.types.ts'
 
 export const DEFAULT_TOAST_DURATION = 6000
 export const MAX_TOAST_DURATION = 2_147_483_647

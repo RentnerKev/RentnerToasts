@@ -1,5 +1,5 @@
 import { readRegularFile } from '../lib/regularFile.ts'
-import type { ReleaseMetadata } from '../lib/Types/automation.types.ts'
+import type { ReleaseMetadata } from './Types/release.types.ts'
 
 export const startMarker = '<!-- rentner-release-notes:start -->'
 export const endMarker = '<!-- rentner-release-notes:end -->'

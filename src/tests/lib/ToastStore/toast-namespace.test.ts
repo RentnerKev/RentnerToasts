@@ -1,17 +1,14 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
-import { toast } from '../../../toast'
-import {
-    clearAllToasts,
-    getToastSnapshot,
-} from '../../../lib/ToastStore/toastStore'
+import { toast } from '../../../lib/ToastStore/toastApi.ts'
+import { defaultToastStore } from '../../../lib/ToastStore/toastStore.ts'
 
 describe('toast namespace', () => {
     beforeEach(() => {
-        clearAllToasts()
+        defaultToastStore.clearAllToasts()
     })
 
     afterEach(() => {
-        clearAllToasts()
+        defaultToastStore.clearAllToasts()
     })
 
     test('creates every status through named shortcuts', () => {
@@ -23,7 +20,7 @@ describe('toast namespace', () => {
         const infoId = toast.info('Zur Information', { duration: 0 })
         const warningId = toast.warning('Bitte prüfen', { duration: 0 })
 
-        expect(getToastSnapshot()).toEqual([
+        expect(defaultToastStore.getToastSnapshot()).toEqual([
             expect.objectContaining({
                 id: successId,
                 content: 'Gespeichert',
@@ -49,12 +46,14 @@ describe('toast namespace', () => {
         toast.dismiss(ids[0])
         toast.dismiss(ids[0])
 
-        expect(getToastSnapshot().map(({ id }) => id)).toEqual(ids.slice(1))
+        expect(
+            defaultToastStore.getToastSnapshot().map(({ id }) => id),
+        ).toEqual(ids.slice(1))
 
         toast.dismissAll()
         toast.dismissAll()
 
-        expect(getToastSnapshot()).toEqual([])
+        expect(defaultToastStore.getToastSnapshot()).toEqual([])
         expect(clearTimeoutSpy).toHaveBeenCalledTimes(4)
         clearTimeoutSpy.mockRestore()
     })
@@ -75,7 +74,7 @@ describe('toast namespace', () => {
             }),
         ).toBe(true)
         expect(toast.update('unbekannt', { content: 'Ignoriert' })).toBe(false)
-        expect(getToastSnapshot()).toEqual([
+        expect(defaultToastStore.getToastSnapshot()).toEqual([
             expect.objectContaining({
                 id: firstId,
                 content: 'Ist aktualisiert',
@@ -116,12 +115,16 @@ describe('toast namespace', () => {
 
             scheduledCallbacks[0]?.()
             expect(
-                getToastSnapshot().some((current) => current.id === id),
+                defaultToastStore
+                    .getToastSnapshot()
+                    .some((current) => current.id === id),
             ).toBe(true)
 
             scheduledCallbacks[1]?.()
             expect(
-                getToastSnapshot().some((current) => current.id === id),
+                defaultToastStore
+                    .getToastSnapshot()
+                    .some((current) => current.id === id),
             ).toBe(false)
             expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
         } finally {
@@ -143,7 +146,7 @@ describe('toast namespace', () => {
                 error: 'Speichern fehlgeschlagen',
             },
         )
-        const loadingToast = getToastSnapshot()[0]
+        const loadingToast = defaultToastStore.getToastSnapshot()[0]
 
         expect(loadingToast).toEqual(
             expect.objectContaining({
@@ -155,7 +158,7 @@ describe('toast namespace', () => {
         )
 
         await expect(resultPromise).resolves.toEqual({ count: 3 })
-        expect(getToastSnapshot()).toEqual([
+        expect(defaultToastStore.getToastSnapshot()).toEqual([
             expect.objectContaining({
                 id: loadingToast.id,
                 content: '3 Einträge gespeichert',
@@ -180,7 +183,7 @@ describe('toast namespace', () => {
                 duration: 0,
             }),
         })
-        const loadingId = getToastSnapshot()[0].id
+        const loadingId = defaultToastStore.getToastSnapshot()[0].id
         let receivedReason: unknown
 
         try {
@@ -190,7 +193,7 @@ describe('toast namespace', () => {
         }
 
         expect(receivedReason).toBe(reason)
-        expect(getToastSnapshot()).toEqual([
+        expect(defaultToastStore.getToastSnapshot()).toEqual([
             expect.objectContaining({
                 id: loadingId,
                 content: 'Netzwerkfehler',
@@ -211,10 +214,10 @@ describe('toast namespace', () => {
             error: 'Fehlgeschlagen',
             duration: 0,
         })
-        const id = getToastSnapshot()[0].id
+        const id = defaultToastStore.getToastSnapshot()[0].id
 
         await expect(resultPromise).resolves.toBe(value)
-        expect(getToastSnapshot()).toEqual([
+        expect(defaultToastStore.getToastSnapshot()).toEqual([
             expect.objectContaining({
                 id,
                 content:
@@ -236,10 +239,10 @@ describe('toast namespace', () => {
             },
             duration: 0,
         })
-        const id = getToastSnapshot()[0].id
+        const id = defaultToastStore.getToastSnapshot()[0].id
 
         await expect(resultPromise).rejects.toBe(reason)
-        expect(getToastSnapshot()).toEqual([
+        expect(defaultToastStore.getToastSnapshot()).toEqual([
             expect.objectContaining({
                 id,
                 content:
@@ -262,12 +265,12 @@ describe('toast namespace', () => {
             error: 'Fehlgeschlagen',
             duration: 0,
         })
-        const id = getToastSnapshot()[0].id
+        const id = defaultToastStore.getToastSnapshot()[0].id
 
         toast.dismiss(id)
         resolvePromise?.('Ergebnis')
 
         await expect(resultPromise).resolves.toBe('Ergebnis')
-        expect(getToastSnapshot()).toEqual([])
+        expect(defaultToastStore.getToastSnapshot()).toEqual([])
     })
 })

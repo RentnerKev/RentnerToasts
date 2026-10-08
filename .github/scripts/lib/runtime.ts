@@ -17,10 +17,28 @@ export function requiredEnv(name: string): string {
     return value
 }
 
-export function eventData<T>(): T {
-    return JSON.parse(
+export function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export function positiveInteger(value: unknown): value is number {
+    return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+}
+
+export function parseJson<T>(
+    text: string,
+    validate: (value: unknown) => value is T,
+): T {
+    const value: unknown = JSON.parse(text)
+    if (!validate(value)) throw new Error('Unexpected automation data shape')
+    return value
+}
+
+export function eventData<T>(validate: (value: unknown) => value is T): T {
+    return parseJson(
         readFileSync(requiredEnv('GITHUB_EVENT_PATH'), 'utf8'),
-    ) as T
+        validate,
+    )
 }
 
 export function output(name: string, value: string): void {
@@ -47,12 +65,29 @@ export function command(
     }
 }
 
-export function api<T>(endpoint: string, method = 'GET', body?: object): T {
+export function api<T>(
+    endpoint: string,
+    validate: (value: unknown) => value is T,
+): T
+export function api(
+    endpoint: string,
+    method: 'POST' | 'PATCH',
+    body: object,
+): unknown
+export function api(
+    endpoint: string,
+    operation: ((value: unknown) => boolean) | 'POST' | 'PATCH',
+    body?: object,
+): unknown {
+    const method = typeof operation === 'function' ? 'GET' : operation
     const args = ['api', '--method', method, endpoint]
     if (body) args.push('--input', '-')
-    return JSON.parse(
+    const value: unknown = JSON.parse(
         command('gh', args, body ? JSON.stringify(body) : undefined),
-    ) as T
+    )
+    if (typeof operation === 'function' && !operation(value))
+        throw new Error('Unexpected GitHub API response shape')
+    return value
 }
 
 export function containsControlCharacters(value: string): boolean {

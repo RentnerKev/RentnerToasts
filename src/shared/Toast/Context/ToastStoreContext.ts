@@ -1,6 +1,6 @@
 import { createContext } from 'react'
-import { defaultToastStore } from '../../../toast.js'
-import type { ToastStoreContextValue } from '../Types/toast-logic.types.js'
+import { defaultToastStore } from '../../../lib/ToastStore/toastApi.ts'
+import type { ToastStoreContextValue } from '../Types/toast-logic.types.ts'
 
 export const ToastStoreContext = createContext<ToastStoreContextValue>({
     store: defaultToastStore,

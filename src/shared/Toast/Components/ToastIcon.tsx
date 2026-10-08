@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle, Info, TriangleAlert } from 'lucide-react'
-import type { ToastIconProps } from '../Types/toast-logic.types.js'
+import type { ToastIconProps } from '../Types/toast-logic.types.ts'
 export function ToastIcon({ type, customDesign }: ToastIconProps) {
     const Icon =
         type === 'success'

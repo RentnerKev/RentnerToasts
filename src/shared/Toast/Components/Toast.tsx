@@ -1,6 +1,6 @@
-import { useToastSurfaceLogic } from '../Hooks/useToastSurfaceLogic.js'
-import { CustomToast } from './CustomToast.js'
-import type { ToastProps } from '../Types/toast-ui.types.js'
+import { useToastSurface } from '../Hooks/useToastSurface.ts'
+import { CustomToast } from './CustomToast.tsx'
+import type { ToastProps } from '../Types/toast-ui.types.ts'
 import { AnimatePresence, MotionConfig } from 'motion/react'
 
 export function Toast({
@@ -10,7 +10,7 @@ export function Toast({
     locale = 'de',
     messages,
 }: ToastProps) {
-    const { state, handler } = useToastSurfaceLogic({
+    const { state, handler } = useToastSurface({
         position,
         locale,
         messages,

@@ -20,7 +20,8 @@
         "inlineSources": true,
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "rewriteRelativeImportExtensions": true
     },
     "include": ["src"],
     "exclude": ["playground", "dist", "node_modules", "src/tests"]

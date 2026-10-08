@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test'
 import {
     parseToastText,
     isSafeToastLink,
-} from '../../../lib/ToastText/toastText'
-import { hasTailwindUtility } from '../../../lib/ToastText/tailwindUtility'
+} from '../../../lib/ToastText/toastText.ts'
+import { hasTailwindUtility } from '../../../lib/ToastText/tailwindUtility.ts'
 describe('toast text helpers', () => {
     test('retains text and refuses script links while preserving safe and relative links', () => {
         expect(

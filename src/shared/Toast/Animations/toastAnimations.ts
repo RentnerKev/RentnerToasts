@@ -1,5 +1,5 @@
 import type { MotionProps } from 'motion/react'
-import type { ToastPosition } from '../../../lib/ToastStore/Types/toast.types.js'
+import type { ToastPosition } from '../../../lib/ToastStore/Types/toast.types.ts'
 
 function getToastCornerOffset(position: ToastPosition) {
     return {

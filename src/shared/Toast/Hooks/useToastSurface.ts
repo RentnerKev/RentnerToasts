@@ -1,14 +1,16 @@
-import { useToastSnapshot } from './useToastSnapshot.js'
-import { resolveToastMessages } from '../../../lib/Messages/toastMessages.js'
-import { toastPositionClasses } from '../../../config/toast-position.config.js'
-import type { ToastProps } from '../Types/toast-ui.types.js'
-import type { ToastSurfaceLogicResult } from '../Types/toast-logic.types.js'
+import { useToastSnapshot } from './useToastSnapshot.ts'
+import { resolveToastMessages } from '../../../lib/Messages/toastMessages.ts'
+import { toastPositionClasses } from '../../../config/toast-position.config.ts'
+import type {
+    ToastSurfaceProps,
+    ToastSurfaceResult,
+} from '../Types/toast-logic.types.ts'
 
-export function useToastSurfaceLogic({
+export function useToastSurface({
     position,
     locale = 'de',
     messages,
-}: ToastProps): ToastSurfaceLogicResult {
+}: ToastSurfaceProps): ToastSurfaceResult {
     const { state, handler } = useToastSnapshot()
     return {
         state: {

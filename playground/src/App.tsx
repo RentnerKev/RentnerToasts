@@ -1,6 +1,6 @@
-import { ToastActions } from './Components/ToastActions.js'
+import { ToastActions } from './Components/ToastActions.tsx'
 import { ToastProvider } from '@rentnerkev/toasts'
-import { usePlaygroundLogic } from './Hooks/usePlaygroundLogic.js'
+import { usePlaygroundLogic } from './Hooks/usePlaygroundLogic.ts'
 
 export function App() {
     const { state, handler } = usePlaygroundLogic()

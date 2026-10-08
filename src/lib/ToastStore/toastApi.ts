@@ -11,13 +11,15 @@ import type {
     ToastStoreOptions,
     ToastType,
     ToastUpdateOptions,
-} from './lib/ToastStore/Types/toast.types.js'
+} from './Types/toast.types.ts'
+
+import type { ToastApiStore } from './Types/toast-store-internal.types.ts'
 
 import {
     copyToastProviderDefaultsRegistrar,
     createToastStoreCore,
     defaultToastStore as defaultToastStoreCore,
-} from './lib/ToastStore/toastStore.js'
+} from './toastStore.ts'
 
 const PROMISE_RESOLVER_FALLBACKS = {
     success:
@@ -49,13 +51,7 @@ function runPromise<T>(input: ToastPromiseInput<T>) {
     }
 }
 
-export function createToastApi(store: {
-    getToastDefaults: ToastStore['getToastDefaults']
-    createToast: ToastStore['createToast']
-    updateToast: ToastStore['updateToast']
-    removeToast: ToastStore['removeToast']
-    clearAllToasts: ToastStore['clearAllToasts']
-}): ToastApi {
+export function createToastApi(store: ToastApiStore): ToastApi {
     function showToast(
         type: ToastType,
         content: string,

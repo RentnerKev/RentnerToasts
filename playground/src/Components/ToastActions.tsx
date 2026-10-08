@@ -1,4 +1,4 @@
-import type { ToastActionsProps } from '../Types/playground.types.js'
+import type { ToastActionsProps } from '../Types/playground.types.ts'
 export function ToastActions({ handler }: ToastActionsProps) {
     return (
         <div className="flex flex-col gap-2 p-10">

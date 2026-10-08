@@ -32,16 +32,17 @@
         "playground:install": "bun install --cwd playground --frozen-lockfile",
         "prepare": "bun run build",
         "pack:check": "bun pm pack --dry-run --ignore-scripts",
-        "pack:consumer": "node scripts/verify-package.mjs",
+        "pack:consumer": "node scripts/consumer/verify.mjs",
         "playground:dev": "bun --cwd playground dev",
         "playground:build": "bun --cwd playground build",
-        "lint": "oxlint .",
-        "lint:fix": "oxlint --fix .",
-        "format": "oxfmt .",
-        "format:check": "oxfmt --check .",
+        "lint": "oxlint --deny-warnings src playground/src playground/vite.config.ts scripts playwright.config.ts .github",
+        "lint:fix": "oxlint --fix --deny-warnings src playground/src playground/vite.config.ts scripts playwright.config.ts .github",
+        "format": "oxfmt src playground/src playground/package.json playground/tsconfig.json playground/vite.config.ts scripts playwright.config.ts package.json tsconfig.json tailwind.css README.md docs .oxfmtrc.json .oxlintrc.json bunfig.toml .github",
+        "format:check": "oxfmt --check src playground/src playground/package.json playground/tsconfig.json playground/vite.config.ts scripts playwright.config.ts package.json tsconfig.json tailwind.css README.md docs .oxfmtrc.json .oxlintrc.json bunfig.toml .github",
         "check": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build",
-        "verify": "bun run playground:install && bun run check && bun run test:browser && bun run pack:check && bun run pack:consumer",
-        "typecheck:automation": "tsc --noEmit -p .github/scripts/tsconfig.json"
+        "verify": "bun run playground:install && bun run playground:typecheck && bun run check && bun run playground:build && bun run test:browser && bun run pack:check && bun run pack:consumer",
+        "typecheck:automation": "tsc --noEmit -p .github/scripts/tsconfig.json",
+        "playground:typecheck": "bunx --bun tsc --noEmit -p playground/tsconfig.json"
     },
     "repository": {
         "type": "git",
@@ -64,6 +65,7 @@
     "devDependencies": {
         "@axe-core/playwright": "^4.13.0",
         "@playwright/test": "^1.63.0",
+        "@types/bun": "^1.4.2",
         "@types/node": "^24.19.1",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
@@ -82,12 +84,12 @@
         },
         "./tailwind.css": "./tailwind.css",
         "./toast": {
-            "types": "./dist/toast.d.ts",
-            "import": "./dist/toast.js"
+            "types": "./dist/lib/ToastStore/toastApi.d.ts",
+            "import": "./dist/lib/ToastStore/toastApi.js"
         },
         "./messages": {
-            "types": "./dist/i18n.d.ts",
-            "import": "./dist/i18n.js"
+            "types": "./dist/lib/Messages/toastMessages.d.ts",
+            "import": "./dist/lib/Messages/toastMessages.js"
         },
         "./types": {
             "types": "./dist/types.d.ts",
@@ -95,8 +97,8 @@
         },
         "./package.json": "./package.json",
         "./lazy-provider": {
-            "types": "./dist/lazy-provider.d.ts",
-            "import": "./dist/lazy-provider.js"
+            "types": "./dist/shared/Toast/Components/LazyToastProvider.d.ts",
+            "import": "./dist/shared/Toast/Components/LazyToastProvider.js"
         }
     },
     "packageManager": "bun@1.4.2"

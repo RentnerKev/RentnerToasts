@@ -8,13 +8,13 @@ import {
     useState,
 } from 'react'
 import type { FocusEvent } from 'react'
-import type { ToastPauseReason } from '../../../lib/ToastStore/Types/toast.types.js'
+import type { ToastPauseReason } from '../../../lib/ToastStore/Types/toast.types.ts'
 import type {
     ToastInteractionProps,
     ToastInteractionResult,
-} from '../Types/toast-logic.types.js'
-import { useToastStore } from './useToastStore.js'
-import { ToastInteractionHandoff } from '../Context/ToastInteractionHandoff.js'
+} from '../Types/toast-logic.types.ts'
+import { useToastStore } from './useToastStore.ts'
+import { ToastInteractionHandoff } from '../Context/ToastInteractionHandoff.ts'
 export function useToastInteraction({
     id,
     forwardedRef,

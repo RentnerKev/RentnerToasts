@@ -1,21 +1,21 @@
 import type { ReactNode } from 'react'
-import type { ToastTextToken } from '../../../lib/ToastText/Types/toast-text.types.js'
-import type { ToastType } from '../../../lib/ToastStore/Types/toast.types.js'
-import type { ToastCustomDesign } from './toast-ui.types.js'
+import type { ToastTextToken } from '../../../lib/ToastText/Types/toast-text.types.ts'
+import type { ToastType } from '../../../lib/ToastStore/Types/toast.types.ts'
+import type { ToastCustomDesign } from './toast-ui.types.ts'
 import type { ComponentType, Ref, RefCallback } from 'react'
-import type { ToastMessages } from '../../../lib/Messages/Types/messages.types.js'
+import type { ToastMessages } from '../../../lib/Messages/Types/messages.types.ts'
 import type {
     Toast,
     ToastApi,
     ToastId,
     ToastStore,
-} from '../../../lib/ToastStore/Types/toast.types.js'
+} from '../../../lib/ToastStore/Types/toast.types.ts'
 import type {
     CustomToastProps,
     ToastProps,
     ToastProviderProps,
     UseCustomToastLogicResult,
-} from './toast-ui.types.js'
+} from './toast-ui.types.ts'
 
 export interface ToastStoreContextValue {
     store: ToastStore
@@ -45,7 +45,7 @@ export interface ToastSnapshotResult {
     handler: { handleRemoveToast: (id: ToastId) => void }
 }
 
-export interface ToastSurfaceLogicResult {
+export interface ToastSurfaceResult {
     state: {
         visibleToasts: readonly Toast[]
         messages: ToastMessages
@@ -93,11 +93,7 @@ export interface UseCopyToastMessageResult {
         copied: boolean
     }
     handler: {
-        clearCopiedTimeout: () => void
         copyToastMessage: () => Promise<boolean>
-    }
-    setter: {
-        setCopied: (copied: boolean) => void
     }
 }
 
@@ -117,3 +113,9 @@ export interface ToastInteractionResult {
 export interface ToastFallbackProps extends ToastProps {
     loadFailed?: boolean
 }
+
+export type ToastProviderLogicProps = Omit<ToastProviderProps, 'children'>
+export type ToastSurfaceProps = Pick<
+    ToastProps,
+    'position' | 'locale' | 'messages'
+>

@@ -1,18 +1,11 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import * as publicApi from '../../../index'
-import { Toast } from '../../../shared/Toast/Components/Toast'
-import { toast } from '../../../toast'
-import {
-    clearAllToasts,
-    configureToastDefaults,
-    getToastDefaults,
-    getToastSnapshot,
-    restoreToastDefaults,
-    setToastPauseReason,
-} from '../../../lib/ToastStore/toastStore'
-import { MAX_TOAST_DURATION } from '../../../lib/ToastTiming/toastTiming'
+import * as publicApi from '../../../index.ts'
+import { Toast } from '../../../shared/Toast/Components/Toast.tsx'
+import { toast } from '../../../lib/ToastStore/toastApi.ts'
+import { defaultToastStore } from '../../../lib/ToastStore/toastStore.ts'
+import { MAX_TOAST_DURATION } from '../../../lib/ToastTiming/toastTiming.ts'
 
 function wait(milliseconds: number) {
     return new Promise<void>((resolve) => {
@@ -22,11 +15,11 @@ function wait(milliseconds: number) {
 
 describe('toast API', () => {
     beforeEach(() => {
-        clearAllToasts()
+        defaultToastStore.clearAllToasts()
     })
 
     afterEach(() => {
-        clearAllToasts()
+        defaultToastStore.clearAllToasts()
     })
 
     test('exposes only the intended public API', () => {
@@ -44,7 +37,7 @@ describe('toast API', () => {
     test('adds and removes a toast through the public API', () => {
         const id = publicApi.toast.success('Alles gut', { title: 'Erfolg' })
 
-        expect(getToastSnapshot()).toEqual([
+        expect(defaultToastStore.getToastSnapshot()).toEqual([
             expect.objectContaining({
                 id,
                 content: 'Alles gut',
@@ -55,41 +48,45 @@ describe('toast API', () => {
 
         publicApi.toast.dismiss(id)
 
-        expect(getToastSnapshot()).toEqual([])
+        expect(defaultToastStore.getToastSnapshot()).toEqual([])
     })
 
     test('returns cached snapshots and defaults that callers cannot mutate', () => {
         toast.info('Bleibt unverändert', { duration: 0 })
-        const snapshot = getToastSnapshot()
-        const defaults = getToastDefaults()
+        const snapshot = defaultToastStore.getToastSnapshot()
+        const defaults = defaultToastStore.getToastDefaults()
 
-        expect(getToastSnapshot()).toBe(snapshot)
-        expect(getToastDefaults()).toBe(defaults)
+        expect(defaultToastStore.getToastSnapshot()).toBe(snapshot)
+        expect(defaultToastStore.getToastDefaults()).toBe(defaults)
         expect(Object.isFrozen(snapshot)).toBe(true)
         expect(Object.isFrozen(snapshot[0])).toBe(true)
         expect(Object.isFrozen(defaults)).toBe(true)
         expect(Reflect.set(snapshot, 'length', 0)).toBe(false)
         expect(Reflect.set(snapshot[0], 'content', 'Verändert')).toBe(false)
         expect(Reflect.set(defaults, 'duration', 1)).toBe(false)
-        expect(getToastSnapshot()[0].content).toBe('Bleibt unverändert')
-        expect(getToastDefaults().duration).toBe(6000)
+        expect(defaultToastStore.getToastSnapshot()[0].content).toBe(
+            'Bleibt unverändert',
+        )
+        expect(defaultToastStore.getToastDefaults().duration).toBe(6000)
     })
 
     test('supports multiple toasts and removes them independently', () => {
         const firstId = toast.info('Erster Toast', { duration: 0 })
         const secondId = toast.warning('Zweiter Toast', { duration: 0 })
 
-        expect(getToastSnapshot()).toHaveLength(2)
+        expect(defaultToastStore.getToastSnapshot()).toHaveLength(2)
 
         toast.dismiss(firstId)
         toast.dismiss(firstId)
 
-        expect(getToastSnapshot().map((item) => item.id)).toEqual([secondId])
+        expect(
+            defaultToastStore.getToastSnapshot().map((item) => item.id),
+        ).toEqual([secondId])
     })
 
     test('uses centrally configured defaults for duration and visible timers', () => {
-        const beforeConfiguration = getToastSnapshot()
-        const previousDefaults = configureToastDefaults({
+        const beforeConfiguration = defaultToastStore.getToastSnapshot()
+        const previousDefaults = defaultToastStore.configureToastDefaults({
             duration: 1234,
             maxVisibleToasts: 2,
         })
@@ -100,7 +97,7 @@ describe('toast API', () => {
                 toast.info('Zwei'),
                 toast.info('Drei'),
             ]
-            const snapshot = getToastSnapshot()
+            const snapshot = defaultToastStore.getToastSnapshot()
 
             expect(snapshot).not.toBe(beforeConfiguration)
             expect(snapshot.map(({ duration }) => duration)).toEqual([
@@ -116,8 +113,8 @@ describe('toast API', () => {
                 snapshot.find(({ id }) => id === ids[2])?.timerStartedAt,
             ).toBeDefined()
         } finally {
-            restoreToastDefaults(previousDefaults)
-            clearAllToasts()
+            defaultToastStore.restoreToastDefaults(previousDefaults)
+            defaultToastStore.clearAllToasts()
         }
     })
 
@@ -129,7 +126,9 @@ describe('toast API', () => {
         await wait(50)
 
         expect(
-            getToastSnapshot().some((item) => item.id === autoDismissId),
+            defaultToastStore
+                .getToastSnapshot()
+                .some((item) => item.id === autoDismissId),
         ).toBe(false)
 
         const clearTimeoutSpy = spyOn(globalThis, 'clearTimeout')
@@ -152,45 +151,61 @@ describe('toast API', () => {
         ]
 
         await wait(90)
-        expect(getToastSnapshot().some(({ id }) => id === queuedId)).toBe(true)
         expect(
-            getToastSnapshot().find(({ id }) => id === queuedId)
-                ?.timerStartedAt,
+            defaultToastStore
+                .getToastSnapshot()
+                .some(({ id }) => id === queuedId),
+        ).toBe(true)
+        expect(
+            defaultToastStore
+                .getToastSnapshot()
+                .find(({ id }) => id === queuedId)?.timerStartedAt,
         ).toBeUndefined()
 
         toast.dismiss(coveringIds[0])
         expect(
-            getToastSnapshot().find(({ id }) => id === queuedId)
-                ?.timerStartedAt,
+            defaultToastStore
+                .getToastSnapshot()
+                .find(({ id }) => id === queuedId)?.timerStartedAt,
         ).toBeDefined()
 
         await wait(90)
-        expect(getToastSnapshot().some(({ id }) => id === queuedId)).toBe(false)
+        expect(
+            defaultToastStore
+                .getToastSnapshot()
+                .some(({ id }) => id === queuedId),
+        ).toBe(false)
     })
 
     test('pauses expiration until hover and focus have both ended', async () => {
         const id = toast.info('Interaktiv', { duration: 70 })
         await wait(20)
 
-        setToastPauseReason(id, 'hover', true)
-        setToastPauseReason(id, 'focus', true)
-        const paused = getToastSnapshot().find((current) => current.id === id)
+        defaultToastStore.setToastPauseReason(id, 'hover', true)
+        defaultToastStore.setToastPauseReason(id, 'focus', true)
+        const paused = defaultToastStore
+            .getToastSnapshot()
+            .find((current) => current.id === id)
         expect(paused?.timerStartedAt).toBeUndefined()
         expect(paused?.remaining).toBeGreaterThan(0)
         expect(paused?.remaining).toBeLessThan(70)
 
         await wait(90)
-        setToastPauseReason(id, 'hover', false)
+        defaultToastStore.setToastPauseReason(id, 'hover', false)
         await wait(80)
-        expect(getToastSnapshot().some((current) => current.id === id)).toBe(
-            true,
-        )
+        expect(
+            defaultToastStore
+                .getToastSnapshot()
+                .some((current) => current.id === id),
+        ).toBe(true)
 
-        setToastPauseReason(id, 'focus', false)
+        defaultToastStore.setToastPauseReason(id, 'focus', false)
         await wait(80)
-        expect(getToastSnapshot().some((current) => current.id === id)).toBe(
-            false,
-        )
+        expect(
+            defaultToastStore
+                .getToastSnapshot()
+                .some((current) => current.id === id),
+        ).toBe(false)
     })
 
     test('normalizes unsafe duration values', () => {
@@ -205,7 +220,7 @@ describe('toast API', () => {
         const longId = toast.info('Sehr lang', {
             duration: Number.MAX_SAFE_INTEGER,
         })
-        const toasts = getToastSnapshot()
+        const toasts = defaultToastStore.getToastSnapshot()
 
         expect(toasts.find((item) => item.id === defaultId)?.duration).toBe(
             6000,
@@ -239,7 +254,7 @@ describe('toast API', () => {
             'aria-label="Benachrichtigung schließen"',
         )
 
-        clearAllToasts()
+        defaultToastStore.clearAllToasts()
         toast.error('Ein Fehler', { title: 'Fehler', duration: 0 })
 
         const alertMarkup = renderToStaticMarkup(

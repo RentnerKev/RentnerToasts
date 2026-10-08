@@ -1,6 +1,6 @@
-import type { UseCopyToastMessageResult } from '../Types/toast-logic.types.js'
+import type { UseCopyToastMessageResult } from '../Types/toast-logic.types.ts'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Toast } from '../../../lib/ToastStore/Types/toast.types.js'
+import type { Toast } from '../../../lib/ToastStore/Types/toast.types.ts'
 
 export function useCopyToastMessage(toast: Toast): UseCopyToastMessageResult {
     const [copied, setCopied] = useState(false)
@@ -41,7 +41,6 @@ export function useCopyToastMessage(toast: Toast): UseCopyToastMessageResult {
 
     return {
         state: { copied },
-        handler: { clearCopiedTimeout, copyToastMessage },
-        setter: { setCopied },
+        handler: { copyToastMessage },
     }
 }

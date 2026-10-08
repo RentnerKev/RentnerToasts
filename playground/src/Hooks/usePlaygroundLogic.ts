@@ -1,5 +1,5 @@
 import { toast } from '@rentnerkev/toasts'
-import type { PlaygroundLogicResult } from '../Types/playground.types.js'
+import type { PlaygroundLogicResult } from '../Types/playground.types.ts'
 import { useState } from 'react'
 
 function handleShowToasts() {
@@ -30,6 +30,5 @@ export function usePlaygroundLogic(): PlaygroundLogicResult {
             handleShowLinkToast,
             handleDismissAll: toast.dismissAll,
         },
-        setter: { setDarkMode },
     }
 }
