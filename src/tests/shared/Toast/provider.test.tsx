@@ -1,10 +1,12 @@
 import { expect, test } from 'bun:test'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { LazyToastProvider } from '../../../shared/Toast/Components/LazyToastProvider.tsx'
-import { ToastProvider } from '../../../shared/Toast/Components/ToastProvider.tsx'
+import {
+    ToastProvider,
+    LazyToastProvider,
+} from '../../../shared/Toast/Components/ToastProvider.tsx'
 import { createToastStore } from '../../../lib/ToastStore/toastApi.ts'
 
-test('renders empty lazy providers during SSR without a Suspense boundary', () => {
+test('renders empty providers during SSR without a Suspense boundary', () => {
     const store = createToastStore()
     try {
         expect(
@@ -19,7 +21,7 @@ test('renders empty lazy providers during SSR without a Suspense boundary', () =
     }
 })
 
-test('renders queued notifications immediately in a localized SSR fallback', () => {
+test('renders queued notifications in their final localized SSR surface', () => {
     const store = createToastStore({ maxVisibleToasts: 2 })
     try {
         store.toast.info('Queued older notification', { duration: 0 })
@@ -37,7 +39,9 @@ test('renders queued notifications immediately in a localized SSR fallback', () 
                 <p>Application</p>
             </LazyToastProvider>,
         )
-        expect(markup).toContain('data-toast-fallback')
+        expect(markup).not.toContain('data-toast-fallback')
+        expect(markup).toContain('<svg')
+        expect(markup).toContain('aria-label="Copy error message"')
         expect(markup).toContain('aria-label="Notifications"')
         expect(markup).toContain('aria-label="Dismiss locally"')
         expect(markup).toContain('role="status"')
@@ -50,6 +54,39 @@ test('renders queued notifications immediately in a localized SSR fallback', () 
         store.dispose()
     }
 })
+
+test.each([
+    ['success', 'bg-emerald-950/95'],
+    ['error', 'bg-rose-950/95'],
+    ['info', 'bg-blue-950/95'],
+    ['warning', 'bg-amber-950/95'],
+] as const)(
+    'renders %s with its final design on the first render',
+    (type, background) => {
+        const store = createToastStore()
+        try {
+            store.toast[type](
+                'Read [documentation](https://npm.rentner.dev/docs/toasts)',
+                {
+                    duration: 0,
+                },
+            )
+            const markup = renderToStaticMarkup(
+                <LazyToastProvider store={store} locale="en">
+                    <p>Application</p>
+                </LazyToastProvider>,
+            )
+            expect(markup).toContain(background)
+            expect(markup).toContain(
+                'href="https://npm.rentner.dev/docs/toasts"',
+            )
+            expect(markup).not.toContain('bg-gray-950')
+            expect(markup).not.toContain('data-toast-fallback')
+        } finally {
+            store.dispose()
+        }
+    },
+)
 
 test('retains the synchronous provider surface during SSR', () => {
     const store = createToastStore()

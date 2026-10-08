@@ -2,37 +2,36 @@ import { useEffect, useState } from 'react'
 import { LazyToastProvider, useToast } from '@rentnerkev/toasts/lazy-provider'
 import { createToastStore } from '@rentnerkev/toasts/toast'
 
-function LazyControls() {
+function CompatibleControls() {
     const toast = useToast()
     return (
         <>
+            {(['info', 'success', 'error', 'warning'] as const).map((type) => (
+                <button
+                    key={type}
+                    type="button"
+                    onClick={() =>
+                        toast[type](
+                            '<safe content> [documentation](https://example.com/docs)',
+                            { title: `${type} title`, duration: 0 },
+                        )
+                    }
+                >
+                    Show compatible {type}
+                </button>
+            ))}
             <button
                 type="button"
                 onClick={() =>
-                    toast.info('Lazy notification', {
-                        title: 'Lazy title',
-                        duration: 0,
+                    toast.info('Timed compatible notification', {
+                        duration: 1200,
                     })
                 }
             >
-                Show lazy toast
-            </button>
-            <button
-                type="button"
-                onClick={() => toast.error('Lazy error', { duration: 0 })}
-            >
-                Show lazy error
-            </button>
-            <button
-                type="button"
-                onClick={() =>
-                    toast.info('Timed lazy notification', { duration: 1200 })
-                }
-            >
-                Show timed lazy toast
+                Show timed compatible toast
             </button>
             <button type="button" onClick={() => toast.dismissAll()}>
-                Clear lazy notifications
+                Clear compatible notifications
             </button>
         </>
     )
@@ -40,12 +39,46 @@ function LazyControls() {
 
 export function LazyApp() {
     const [store] = useState(() => createToastStore())
-    useEffect(() => () => store.dispose(), [store])
+    const [light, setLight] = useState(false)
+    useEffect(() => {
+        document.documentElement.dataset.hydrated = 'true'
+        return () => store.dispose()
+    }, [store])
     return (
         <main>
-            <h1>Lazy packaged consumer</h1>
-            <LazyToastProvider store={store} locale="en">
-                <LazyControls />
+            <h1>Compatible packaged consumer</h1>
+            <label>
+                <input
+                    type="checkbox"
+                    checked={light}
+                    onChange={(event) => setLight(event.target.checked)}
+                />
+                Light design
+            </label>
+            <LazyToastProvider
+                store={store}
+                locale="en"
+                customDesign={
+                    light
+                        ? {
+                              successWrapper:
+                                  'bg-white border-gray-300 text-gray-950',
+                              errorWrapper:
+                                  'bg-white border-gray-300 text-gray-950',
+                              infoWrapper:
+                                  'bg-white border-gray-300 text-gray-950',
+                              warningWrapper:
+                                  'bg-white border-gray-300 text-gray-950',
+                              titleText: 'text-gray-950',
+                              contentText: 'text-gray-700',
+                              closeButton: 'text-gray-700',
+                              copyButton: 'text-gray-700',
+                              linkText: 'text-blue-700 underline',
+                          }
+                        : undefined
+                }
+            >
+                <CompatibleControls />
             </LazyToastProvider>
         </main>
     )

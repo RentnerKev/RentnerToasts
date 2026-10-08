@@ -4,7 +4,6 @@ import { defaultToastStore } from '../../../lib/ToastStore/toastApi.ts'
 import { registerToastProviderDefaults } from '../../../lib/ToastStore/toastStore.ts'
 import type { ToastStore } from '../../../lib/ToastStore/Types/toast.types.ts'
 import type {
-    ToastInteractionEntries,
     ToastProviderLogicResult,
     ToastProviderLogicProps,
 } from '../Types/toast-logic.types.ts'
@@ -45,16 +44,11 @@ export function useToastProviderLogic({
 
     const { state } = useToastSnapshot(store)
     const storeContext = useMemo(() => ({ store, toast: store.toast }), [store])
-    const interaction = useMemo(
-        () => ({ store, entries: new Map() as ToastInteractionEntries }),
-        [store],
-    )
 
     return {
         state: {
             hasToasts: state.toasts.length > 0,
             storeContext,
-            interactionEntries: interaction.entries,
             surfaceProps: {
                 customDesign,
                 position,

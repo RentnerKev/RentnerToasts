@@ -1,3 +1,6 @@
+/* eslint-disable no-await-in-loop -- Stateful browser cases run sequentially to bound memory use. */
+import { AxeBuilder } from '@axe-core/playwright'
+
 export async function check({ page, expect }) {
     await page.setViewportSize({ width: 500, height: 640 })
     await page.getByRole('button', { name: 'Show toast' }).click()
@@ -170,4 +173,149 @@ export async function check({ page, expect }) {
     await expect(duration).toHaveText('7000')
     await page.getByRole('button', { name: 'Remove later provider' }).click()
     await expect(duration).toHaveText('1000')
+}
+
+export async function checkProviderCompatibility({ browser, url, expect }) {
+    const paints = []
+    for (const design of ['default', 'light']) {
+        // Fresh contexts keep the first invocation cold and independent of
+        // the synchronous consumer's simulated clock or module cache.
+        const context = await browser.newContext({
+            timezoneId: 'UTC',
+            reducedMotion: 'no-preference',
+        })
+        const page = await context.newPage()
+        try {
+            const errors = []
+            const scriptRequests = []
+            let notificationsStarted = false
+            page.on('pageerror', (error) => errors.push(String(error)))
+            await page.route('**/*.js', (route) => {
+                if (notificationsStarted) {
+                    scriptRequests.push(route.request().url())
+                    return route.abort('failed')
+                }
+                return route.continue()
+            })
+            await page.goto(`${url}/lazy.html`)
+            await expect(page.locator('html')).toHaveAttribute(
+                'data-hydrated',
+                'true',
+            )
+            expect(
+                await page.evaluate(() => window.consumerHydrationErrors),
+            ).toEqual([])
+            if (design === 'light')
+                await page.getByLabel('Light design').check()
+            await page.evaluate(() => {
+                window.consumerToastPaints = []
+                const seen = new WeakSet()
+                const observer = new MutationObserver(() => {
+                    for (const node of document.querySelectorAll(
+                        '[role="status"], [role="alert"]',
+                    )) {
+                        if (seen.has(node)) continue
+                        seen.add(node)
+                        window.consumerToastPaints.push({
+                            text: node.textContent,
+                            background: getComputedStyle(node).backgroundColor,
+                            classes: node.className.split(' '),
+                            fallback: node.hasAttribute('data-toast-fallback'),
+                            links: node.querySelectorAll('a').length,
+                        })
+                    }
+                })
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                })
+            })
+            notificationsStarted = true
+            for (const [variant, background] of [
+                ['info', 'bg-blue-950/95'],
+                ['success', 'bg-emerald-950/95'],
+                ['error', 'bg-rose-950/95'],
+                ['warning', 'bg-amber-950/95'],
+            ]) {
+                await page
+                    .getByRole('button', {
+                        name: `Show compatible ${variant}`,
+                        exact: true,
+                    })
+                    .click()
+                const toast = page.getByRole(
+                    variant === 'error' ? 'alert' : 'status',
+                )
+                await expect(toast).toHaveCSS('opacity', '1')
+                await expect(toast).toContainText(`${variant} title`)
+                await expect(toast).toContainText('<safe content>')
+                await expect(
+                    toast.getByRole('link', { name: 'documentation' }),
+                ).toHaveAttribute('href', 'https://example.com/docs')
+                const observed = await page.evaluate(
+                    (title) =>
+                        window.consumerToastPaints.filter((paint) =>
+                            paint.text.includes(title),
+                        ),
+                    `${variant} title`,
+                )
+                expect(observed).toHaveLength(1)
+                const first = observed[0]
+                expect(first.fallback).toBe(false)
+                expect(first.classes).toContain(
+                    design === 'light' ? 'bg-white' : background,
+                )
+                expect(first.links).toBe(1)
+                expect(first.background).toBe(
+                    await toast.evaluate(
+                        (node) => getComputedStyle(node).backgroundColor,
+                    ),
+                )
+                expect(scriptRequests).toEqual([])
+                expect(errors).toEqual([])
+                paints.push({ design, variant, ...first })
+                if (variant === 'error') {
+                    await expect(
+                        toast.getByRole('button', {
+                            name: 'Copy error message',
+                        }),
+                    ).toBeVisible()
+                    expect(
+                        (await new AxeBuilder({ page }).analyze()).violations,
+                    ).toEqual([])
+                }
+                await toast
+                    .getByRole('button', { name: 'Close notification' })
+                    .click()
+                await expect(toast).toHaveCount(0)
+            }
+
+            await page.emulateMedia({ reducedMotion: 'reduce' })
+            await page.clock.install()
+            await page
+                .getByRole('button', { name: 'Show timed compatible toast' })
+                .click()
+            await page.clock.runFor(250)
+            const timed = page.getByRole('status')
+            await timed
+                .getByRole('button', { name: 'Close notification' })
+                .focus()
+            await timed.hover()
+            await page.clock.fastForward(1600)
+            await expect(timed).toBeVisible()
+            await page.mouse.move(0, 0)
+            await page.clock.fastForward(1600)
+            await expect(timed).toBeVisible()
+            await page
+                .getByRole('button', { name: 'Show timed compatible toast' })
+                .focus()
+            await page.clock.fastForward(1600)
+            await expect(timed).toHaveCount(0)
+            expect(scriptRequests).toEqual([])
+            expect(errors).toEqual([])
+        } finally {
+            await context.close()
+        }
+    }
+    return paints
 }

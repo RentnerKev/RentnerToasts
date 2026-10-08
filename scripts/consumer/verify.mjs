@@ -16,7 +16,7 @@ import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium, firefox, webkit, expect } from '@playwright/test'
 import { AxeBuilder } from '@axe-core/playwright'
-import { check } from './checks.mjs'
+import { check, checkProviderCompatibility } from './checks.mjs'
 
 const packageRoot = process.cwd()
 const manifest = JSON.parse(
@@ -293,7 +293,7 @@ try {
     const { html: lazyHtml } = await import(
         pathToFileURL(join(consumerRoot, 'lazy-ssr/lazy-ssr.js')).href
     )
-    assert.ok(lazyHtml.includes('Lazy packaged consumer'))
+    assert.ok(lazyHtml.includes('Compatible packaged consumer'))
     assert.ok(!lazyHtml.includes('data-toast-fallback'))
     writeFileSync(
         join(consumerRoot, 'lazy.html'),
@@ -309,26 +309,13 @@ try {
     const buildManifest = JSON.parse(
         readFileSync(join(outputRoot, '.vite/manifest.json'), 'utf8'),
     )
-    const lazyToastChunk = (buildManifest['lazy.html']?.dynamicImports ?? [])
-        .map((key) => buildManifest[key])
-        .find((entry) => entry.name === 'Toast')
-    assert.ok(
-        lazyToastChunk,
-        'The lazy provider must publish a separate dynamically imported Toast chunk',
-    )
-    function eagerImports(key, seen = new Set()) {
-        if (seen.has(key)) return seen
-        seen.add(key)
-        for (const dependency of buildManifest[key]?.imports ?? [])
-            eagerImports(dependency, seen)
-        return seen
+    for (const entry of ['index.html', 'lazy.html']) {
+        assert.equal(
+            buildManifest[entry]?.dynamicImports?.length ?? 0,
+            0,
+            'Both provider entries must include their toast surface before the first notification',
+        )
     }
-    assert.ok(
-        !Array.from(eagerImports('lazy.html')).some(
-            (key) => buildManifest[key]?.file === lazyToastChunk.file,
-        ),
-        'The lazy entry must not eagerly import the animated Toast chunk',
-    )
     const mime = {
         '.js': 'text/javascript',
         '.css': 'text/css',
@@ -383,185 +370,9 @@ try {
             const accessibility = await new AxeBuilder({ page }).analyze()
             expect(accessibility.violations).toEqual([])
             expect(errors).toEqual([])
-            // A separate HTML entry keeps the synchronous provider out of the
-            // lazy entry's eager dependency graph.
-            const lazyPage = await context.newPage()
-            let releaseChunk
-            const chunkGate = new Promise((done) => {
-                releaseChunk = done
-            })
-            let requests = 0
-            await lazyPage.route(`**/${lazyToastChunk.file}`, async (route) => {
-                requests++
-                await chunkGate
-                await route.continue()
-            })
-            await lazyPage.goto(`${url}/lazy.html`)
-            expect(requests).toBe(0)
-            expect(
-                await lazyPage.evaluate(() => window.consumerHydrationErrors),
-            ).toEqual([])
-            await lazyPage
-                .getByRole('button', { name: 'Show lazy toast', exact: true })
-                .click()
-            const pending = lazyPage.locator('[data-toast-fallback]')
-            await expect(pending).toContainText('Lazy title')
-            await expect(pending).toContainText('Lazy notification')
-            await expect(
-                pending.getByRole('button', { name: 'Close notification' }),
-            ).toBeVisible()
-            expect(requests).toBe(1)
-            releaseChunk()
-            await expect(lazyPage.locator('[data-toast-fallback]')).toHaveCount(
-                0,
-            )
-            await expect(lazyPage.getByRole('status')).toContainText(
-                'Lazy notification',
-            )
-            await lazyPage
-                .getByRole('button', { name: 'Close notification' })
-                .click()
-            await expect(lazyPage.getByRole('status')).toHaveCount(0)
-            await lazyPage.close()
-
-            const handoffPage = await context.newPage()
-            let releaseHandoff
-            const handoffGate = new Promise((done) => {
-                releaseHandoff = done
-            })
-            await handoffPage.route(
-                `**/${lazyToastChunk.file}`,
-                async (route) => {
-                    await handoffGate
-                    await route.continue()
-                },
-            )
-            await handoffPage.goto(`${url}/lazy.html`)
-            await handoffPage.clock.install()
-            await handoffPage
-                .getByRole('button', { name: 'Show timed lazy toast' })
-                .click()
-            const interactingFallback = handoffPage.locator(
-                '[data-toast-fallback]',
-            )
-            await interactingFallback
-                .getByRole('button', { name: 'Close notification' })
-                .focus()
-            await interactingFallback.hover()
-            await handoffPage.clock.fastForward(200)
-            releaseHandoff()
-            await expect(interactingFallback).toHaveCount(0)
-            const handedToast = handoffPage.getByRole('status')
-            await expect(
-                handedToast.getByRole('button', { name: 'Close notification' }),
-            ).toBeFocused()
-            await handoffPage.clock.fastForward(1600)
-            await expect(handedToast).toBeVisible()
-            await handoffPage.mouse.move(0, 0)
-            await handoffPage.clock.fastForward(1600)
-            await expect(handedToast).toBeVisible()
-            await handoffPage
-                .getByRole('button', { name: 'Show lazy toast', exact: true })
-                .focus()
-            await handoffPage.clock.fastForward(1600)
-            await expect(handedToast).toBeHidden()
-            await handoffPage.close()
-
-            const failedHandoffPage = await context.newPage()
-            let failChunk
-            const failureGate = new Promise((done) => {
-                failChunk = done
-            })
-            let chunkFailed
-            const failureDone = new Promise((done) => {
-                chunkFailed = done
-            })
-            await failedHandoffPage.route(
-                `**/${lazyToastChunk.file}`,
-                async (route) => {
-                    await failureGate
-                    await route.abort('failed')
-                    chunkFailed()
-                },
-            )
-            await failedHandoffPage.goto(`${url}/lazy.html`)
-            await failedHandoffPage.clock.install()
-            await failedHandoffPage
-                .getByRole('button', { name: 'Show timed lazy toast' })
-                .click()
-            const failingFallback = failedHandoffPage.locator(
-                '[data-toast-fallback]',
-            )
-            const failingClose = failingFallback.getByRole('button', {
-                name: 'Close notification',
-            })
-            await failingClose.focus()
-            await failingFallback.hover()
-            failChunk()
-            await failureDone
-            await expect(
-                failedHandoffPage.locator('[data-toast-load-failed]'),
-            ).toBeVisible()
-            await expect(failingClose).toBeFocused()
-            await failedHandoffPage.clock.fastForward(1600)
-            await expect(failingFallback).toBeVisible()
-            await failedHandoffPage.mouse.move(0, 0)
-            await failedHandoffPage.clock.fastForward(1600)
-            await expect(failingFallback).toBeVisible()
-            await failedHandoffPage
-                .getByRole('button', { name: 'Show lazy toast', exact: true })
-                .focus()
-            await failedHandoffPage.clock.fastForward(1600)
-            await expect(failingFallback).toHaveCount(0)
-            await failedHandoffPage.close()
-
-            const failurePage = await context.newPage()
-            await failurePage.route(`**/${lazyToastChunk.file}`, (route) =>
-                route.abort('failed'),
-            )
-            await failurePage.goto(`${url}/lazy.html`)
-            await failurePage
-                .getByRole('button', { name: 'Show lazy error' })
-                .click()
-            await expect(
-                failurePage.locator('[data-toast-fallback][role="alert"]'),
-            ).toContainText('Lazy error')
-            await failurePage
-                .getByRole('button', { name: 'Close notification' })
-                .click()
-            await expect(
-                failurePage.locator('[data-toast-fallback]'),
-            ).toHaveCount(0)
-            await failurePage.clock.install()
-            await failurePage
-                .getByRole('button', { name: 'Show timed lazy toast' })
-                .click()
-            const timedFallback = failurePage.locator('[data-toast-fallback]')
-            const fallbackClose = timedFallback.getByRole('button', {
-                name: 'Close notification',
-            })
-            await fallbackClose.focus()
-            await timedFallback.hover()
-            await failurePage.clock.fastForward(1600)
-            await expect(timedFallback).toBeVisible()
-            await failurePage.mouse.move(0, 0)
-            await failurePage.clock.fastForward(1600)
-            await expect(timedFallback).toBeVisible()
-            await failurePage
-                .getByRole('button', { name: 'Show lazy error' })
-                .focus()
-            await failurePage.clock.fastForward(1600)
-            await expect(timedFallback).toHaveCount(0)
-            await failurePage
-                .getByRole('button', { name: 'Show lazy error' })
-                .click()
-            const fallbackAccessibility = await new AxeBuilder({
-                page: failurePage,
-            }).analyze()
-            expect(fallbackAccessibility.violations).toEqual([])
-            await failurePage.close()
+            await checkProviderCompatibility({ browser, url, expect })
             console.log(
-                `Packed consumer ${name} passed: ${manifest.name}@${manifest.version} (React ${dependencies.react}, Motion ${dependencies.motion}; sync + lazy + chunk failure)`,
+                `Packed consumer ${name} passed: ${manifest.name}@${manifest.version} (React ${dependencies.react}, Motion ${dependencies.motion}; sync + compatible provider, 8 first-paint designs)`,
             )
         } finally {
             await browser.close()

@@ -52,10 +52,14 @@ export function App() {
 }
 ```
 
-### Load the animated toast surface on demand
+### Existing lazy-provider imports
 
-Use the separate entry when the initial application should defer Motion and
-icons until the first notification. It accepts the same props as ToastProvider:
+`ToastProvider` loads the complete toast surface with the application. The first
+notification immediately uses its final colors, icons, Markdown links and
+controls, with no loading fallback or surface replacement.
+
+Existing `LazyToastProvider` imports remain supported as an alias of
+`ToastProvider`, with the same props and behavior:
 
 ```tsx
 import { LazyToastProvider, useToast } from '@rentnerkev/toasts/lazy-provider'
@@ -72,21 +76,14 @@ export function App() {
 }
 ```
 
-Keep provider and hook imports on the lazy entry, and notification APIs on
-`./toast`; importing the regular root entry also loads the synchronous provider.
-`ToastProvider` remains synchronous. The lazy surface loads only when a toast
-exists. During loading, and permanently if its chunk cannot load, a local
-plain-text fallback displays the same titles and messages with localized close
-buttons, status/alert semantics, visible limits, and hover/focus timer pauses.
-This fallback does not animate or render Markdown links. Closing, updates, and
-normal expiry still work; notifications are never hidden merely because loading
-failed. A failed module import stays failed until the application reloads.
+For new integrations, use `ToastProvider`. The `./toast` entry remains available
+for UI-free notification APIs. Motion and icons are included in the provider's
+initial dependency graph, so displaying a notification needs no extra JavaScript
+request. Normal entrance and exit animations, reduced-motion behavior, hover and
+focus timer pauses, updates and expiry remain available.
 
-For SSR, an empty store renders children without starting the import. With
-existing notifications, streaming SSR can resolve the Suspense boundary;
-`renderToString` emits the readable fallback and React may report its usual
-unfinished-Suspense recoverable hydration error. Create request-scoped stores
-rather than sharing server notification state.
+SSR renders queued notifications directly without a Suspense fallback. Create
+request-scoped stores rather than sharing server notification state.
 
 ### Isolated application roots
 
@@ -373,8 +370,8 @@ MIT. See [LICENSE](../LICENSE).
 
 ## Source architecture
 
-The root `src/index.ts` and cross-owner `src/types.ts` preserve the public aggregate exports. The `./toast`, `./messages`, and `./lazy-provider` npm subpaths map directly to their defining modules in `src/lib/ToastStore/toastApi.ts`, `src/lib/Messages/toastMessages.ts`, and `src/shared/Toast/Components/LazyToastProvider.tsx`. Internal code imports its defining module directly.
+The root `src/index.ts` and cross-owner `src/types.ts` preserve the public aggregate exports. The `./toast`, `./messages`, and `./lazy-provider` npm subpaths map directly to their defining modules in `src/lib/ToastStore/toastApi.ts`, `src/lib/Messages/toastMessages.ts`, and `src/shared/Toast/Components/ToastProvider.tsx`. Internal code imports its defining module directly.
 
-Toast presentation, animation, context, owning logic hooks, and UI contracts live in `src/shared/Toast`. `useToastProviderLogic` owns defaults, store context, and interaction handoff for both providers; `useToastSurface` shares snapshot, positioning, and localization between the animated and fallback surfaces. `useCustomToastLogic` owns animated notification interactions and timing. Focused hooks handle snapshot subscription and clipboard state; `useToastInteraction` owns pause claims and DOM handoff for both animated and fallback displays, including chunk failures.
+Toast presentation, animation, context, owning logic hooks, and UI contracts live in `src/shared/Toast`. `useToastProviderLogic` owns provider defaults and store context; `useToastSurface` owns the notification snapshot, positioning and localization. `useCustomToastLogic` owns animated notification interactions and timing. Focused hooks handle snapshot subscription and clipboard state; `useToastInteraction` owns each display's hover/focus pause claims and forwarded DOM ref. Both public provider names use the same synchronous surface.
 
 UI-free store, timing, messages, link tokenization, and utility matching live in `src/lib`; declarative defaults live in `src/config`. Unit and browser tests are centralized under `src/tests`, mirroring their owners. The playground separates its template, actions, logic hook, and typed contracts.

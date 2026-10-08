@@ -1,6 +1,6 @@
 {
     "name": "@rentnerkev/toasts",
-    "version": "3.3.1",
+    "version": "3.3.2",
     "description": "Accessible, customizable toast notifications for React.",
     "keywords": [
         "react",
@@ -97,8 +97,8 @@
         },
         "./package.json": "./package.json",
         "./lazy-provider": {
-            "types": "./dist/shared/Toast/Components/LazyToastProvider.d.ts",
-            "import": "./dist/shared/Toast/Components/LazyToastProvider.js"
+            "types": "./dist/shared/Toast/Components/ToastProvider.d.ts",
+            "import": "./dist/shared/Toast/Components/ToastProvider.js"
         }
     },
     "packageManager": "bun@1.4.2"

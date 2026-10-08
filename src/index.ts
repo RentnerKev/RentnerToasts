@@ -1,5 +1,7 @@
-export { LazyToastProvider } from './shared/Toast/Components/LazyToastProvider.tsx'
-export { ToastProvider } from './shared/Toast/Components/ToastProvider.tsx'
+export {
+    ToastProvider,
+    LazyToastProvider,
+} from './shared/Toast/Components/ToastProvider.tsx'
 export { createToastStore, toast } from './lib/ToastStore/toastApi.ts'
 export { useToast } from './shared/Toast/Hooks/useToastStore.ts'
 export { resolveToastMessages } from './lib/Messages/toastMessages.ts'
