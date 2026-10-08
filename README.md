@@ -61,4 +61,4 @@ bun install --cwd playground
 bun run playground:dev
 ```
 
-[Full API and usage guide](https://github.com/RentnerKev/RentnerToasts/blob/main/docs/usage.md) · [Local Playground](./playground) · [MIT license](./LICENSE)
+[Full API and usage guide](https://npm.rentner.dev/docs/toasts) · [Local Playground](./playground) · [MIT license](./LICENSE)
