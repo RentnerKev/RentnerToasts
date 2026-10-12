@@ -43,6 +43,7 @@ function fixture() {
     const comments: RebaseComment[] = []
     const requests: { number: number; body: string }[] = []
     const operations: RebaseOperations = {
+        user: () => 'RentnerKev',
         mainHead: () => main,
         pullRequests: () => [{ number: pr.number, user: pr.user }],
         pullRequest: () => structuredClone(pr),
@@ -60,11 +61,20 @@ function previousComment(minutes: number): RebaseComment {
     return {
         body,
         created_at: new Date(now - minutes * 60 * 1000).toISOString(),
-        user: { login: 'github-actions[bot]' },
+        user: { login: 'RentnerKev' },
     }
 }
 
 describe('Dependabot rebase queue', () => {
+    test('rejects app identities before posting Dependabot commands', () => {
+        const input = fixture()
+        input.operations.user = () => 'github-actions[bot]'
+        expect(() =>
+            rebaseDependabot(repository, input.operations, now),
+        ).toThrow('personal account')
+        expect(input.requests).toEqual([])
+    })
+
     test('requests rebases for every outdated auto-merge PR against current main', () => {
         const input = fixture()
         input.operations.pullRequests = () => [
@@ -164,7 +174,7 @@ describe('Dependabot rebase queue', () => {
         expect(input.requests).toEqual([{ number: 7, body }])
     })
 
-    test('a request for another head or a human comment does not block progress', () => {
+    test('a request for another head or another account does not block progress', () => {
         for (const kind of ['other head', 'human']) {
             const input = fixture()
             const comment = previousComment(5)

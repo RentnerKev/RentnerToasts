@@ -25,10 +25,6 @@ jobs:
             github.event.workflow_run.head_repository.full_name == github.repository)
         runs-on: ubuntu-latest
         timeout-minutes: 10
-        permissions:
-            # Dependabot comment commands require push access.
-            contents: write
-            pull-requests: write
         steps:
             - name: Checkout trusted main automation
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,5 +37,5 @@ jobs:
                   bun-version: 1.4.2
             - name: Request rebases for outdated auto-merge branches
               env:
-                  GH_TOKEN: ${{ github.token }}
+                  GH_TOKEN: ${{ secrets.DEPENDABOT_REBASE_TOKEN }}
               run: bun .github/scripts/security/rebase-dependabot.ts

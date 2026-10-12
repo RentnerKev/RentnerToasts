@@ -100,6 +100,7 @@ export interface RebaseComment {
 }
 
 export interface RebaseOperations {
+    user: () => string
     mainHead: () => string
     pullRequests: (page: number) => PullRequestSummary[]
     pullRequest: (number: number) => RebasePullRequest

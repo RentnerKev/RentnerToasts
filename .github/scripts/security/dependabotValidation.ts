@@ -14,7 +14,7 @@ import type {
 } from './Types/dependabot.types.ts'
 import { isRecord, positiveInteger } from '../lib/runtime.ts'
 
-function isLogin(value: unknown): value is { login: string } {
+export function isLogin(value: unknown): value is { login: string } {
     return isRecord(value) && typeof value.login === 'string'
 }
 

@@ -8,6 +8,7 @@ import {
     isBotCommits,
     isCommitComparison,
     isCommitHead,
+    isLogin,
     isPullRequestSummaries,
     isRebaseComments,
     isRebasePullRequest,
@@ -39,6 +40,11 @@ export function rebaseDependabot(
     operations: RebaseOperations,
     now: number = Date.now(),
 ): void {
+    const user = operations.user()
+    if (!user || user.endsWith('[bot]'))
+        throw new Error(
+            'Dependabot rebase commands require a personal account with push access',
+        )
     for (const summary of pages(operations.pullRequests)) {
         if (summary.user.login !== 'dependabot[bot]') continue
         const pr = operations.pullRequest(summary.number)
@@ -64,7 +70,7 @@ export function rebaseDependabot(
             pages((page) => operations.comments(pr.number, page)),
         ).some(
             (comment) =>
-                comment.user.login === 'github-actions[bot]' &&
+                comment.user.login === user &&
                 comment.body === body &&
                 now - Date.parse(comment.created_at) < 30 * 60 * 1000,
         )
@@ -84,8 +90,13 @@ export function rebaseDependabot(
 }
 
 if (isMain(import.meta.url)) {
+    if (!process.env.GH_TOKEN)
+        throw new Error(
+            'Configure repository secret DEPENDABOT_REBASE_TOKEN for automatic rebases',
+        )
     const { repository } = repositoryPolicy()
     rebaseDependabot(repository, {
+        user: () => api('user', isLogin).login,
         mainHead: () =>
             api(`repos/${repository}/commits/main`, isCommitHead).sha,
         pullRequests: (page) =>
