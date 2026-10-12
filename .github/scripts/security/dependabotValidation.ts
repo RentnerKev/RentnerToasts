@@ -1,8 +1,13 @@
 import type {
     ArtifactsResponse,
     BotCommit,
+    CommitComparison,
+    CommitHead,
     MetadataRun,
     PullRequest,
+    PullRequestSummary,
+    RebaseComment,
+    RebasePullRequest,
     WorkflowContents,
     WorkflowDefinition,
     WorkflowRunEvent,
@@ -107,6 +112,62 @@ export function isBotCommits(value: unknown): value is BotCommit[] {
                 isRecord(commit.commit) &&
                 isRecord(commit.commit.verification) &&
                 typeof commit.commit.verification.verified === 'boolean',
+        )
+    )
+}
+
+export function isPullRequestSummaries(
+    value: unknown,
+): value is PullRequestSummary[] {
+    return (
+        Array.isArray(value) &&
+        value.every(
+            (pr: unknown) =>
+                isRecord(pr) && positiveInteger(pr.number) && isLogin(pr.user),
+        )
+    )
+}
+
+export function isRebasePullRequest(
+    value: unknown,
+): value is RebasePullRequest {
+    return (
+        isPullRequest(value) &&
+        isRecord(value) &&
+        (value.auto_merge === null ||
+            (isRecord(value.auto_merge) &&
+                typeof value.auto_merge.merge_method === 'string'))
+    )
+}
+
+export function isCommitHead(value: unknown): value is CommitHead {
+    return (
+        isRecord(value) &&
+        typeof value.sha === 'string' &&
+        value.sha.length === 40 &&
+        /^[a-f0-9]{40}$/.test(value.sha)
+    )
+}
+
+export function isCommitComparison(value: unknown): value is CommitComparison {
+    return (
+        isRecord(value) &&
+        typeof value.behind_by === 'number' &&
+        Number.isSafeInteger(value.behind_by) &&
+        value.behind_by >= 0
+    )
+}
+
+export function isRebaseComments(value: unknown): value is RebaseComment[] {
+    return (
+        Array.isArray(value) &&
+        value.every(
+            (comment: unknown) =>
+                isRecord(comment) &&
+                typeof comment.body === 'string' &&
+                typeof comment.created_at === 'string' &&
+                Number.isFinite(Date.parse(comment.created_at)) &&
+                isLogin(comment.user),
         )
     )
 }

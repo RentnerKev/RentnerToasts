@@ -75,3 +75,36 @@ export interface AutoMergeIdentity {
 export interface WorkflowRunEvent {
     workflow_run: MetadataRun
 }
+
+export interface PullRequestSummary {
+    number: number
+    user: { login: string }
+}
+
+export interface RebasePullRequest extends PullRequest {
+    auto_merge: { merge_method: string } | null
+}
+
+export interface CommitHead {
+    sha: string
+}
+
+export interface CommitComparison {
+    behind_by: number
+}
+
+export interface RebaseComment {
+    body: string
+    created_at: string
+    user: { login: string }
+}
+
+export interface RebaseOperations {
+    mainHead: () => string
+    pullRequests: (page: number) => PullRequestSummary[]
+    pullRequest: (number: number) => RebasePullRequest
+    commits: (number: number) => BotCommit[]
+    comparison: (base: string, head: string) => CommitComparison
+    comments: (number: number, page: number) => RebaseComment[]
+    comment: (number: number, body: string) => void
+}
