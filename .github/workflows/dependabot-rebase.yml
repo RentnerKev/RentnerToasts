@@ -26,7 +26,8 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 10
         permissions:
-            contents: read
+            # Dependabot comment commands require push access.
+            contents: write
             pull-requests: write
         steps:
             - name: Checkout trusted main automation
