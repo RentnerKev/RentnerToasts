@@ -103,3 +103,62 @@ test('retains the synchronous provider surface during SSR', () => {
         store.dispose()
     }
 })
+
+test.each([undefined, 'Configured title'])(
+    'applies custom content classes when the title is %s',
+    (title) => {
+        const store = createToastStore()
+        try {
+            store.toast.info('Configured content', { title, duration: 0 })
+            const markup = renderToStaticMarkup(
+                <ToastProvider
+                    store={store}
+                    customDesign={{
+                        contentText: 'text-fuchsia-300 font-semibold',
+                    }}
+                >
+                    <p>Application</p>
+                </ToastProvider>,
+            )
+            const contentClasses =
+                markup
+                    .match(
+                        /<span class="([^"]*)">Configured content<\/span>/,
+                    )?.[1]
+                    .split(/\s+/) ?? []
+
+            expect(contentClasses).toContain('text-fuchsia-300')
+            expect(contentClasses).toContain('font-semibold')
+            expect(contentClasses).not.toContain('font-medium')
+            expect(contentClasses).not.toContain('text-gray-300')
+        } finally {
+            store.dispose()
+        }
+    },
+)
+
+test.each([
+    [undefined, 'font-medium'],
+    ['Configured title', 'text-gray-300'],
+])(
+    'preserves default content classes when the title is %s',
+    (title, defaultClass) => {
+        const store = createToastStore()
+        try {
+            store.toast.info('Default content', { title, duration: 0 })
+            const markup = renderToStaticMarkup(
+                <ToastProvider store={store}>
+                    <p>Application</p>
+                </ToastProvider>,
+            )
+            const contentClasses =
+                markup
+                    .match(/<span class="([^"]*)">Default content<\/span>/)?.[1]
+                    .split(/\s+/) ?? []
+
+            expect(contentClasses).toContain(defaultClass)
+        } finally {
+            store.dispose()
+        }
+    },
+)

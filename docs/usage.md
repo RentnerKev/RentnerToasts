@@ -271,7 +271,7 @@ The package entry scans only the published JavaScript under `dist` and provides 
 
 ### Custom design
 
-Design overrides are Tailwind class strings:
+Design overrides are Tailwind class strings. `contentText` applies to the message body with or without a title, replacing its default text classes:
 
 ```tsx
 const customDesign = {

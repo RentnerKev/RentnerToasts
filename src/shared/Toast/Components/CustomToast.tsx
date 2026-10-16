@@ -72,7 +72,7 @@ export function CustomToast({
                     </span>
                 )}
                 <span
-                    className={`text-sm wrap-break-word leading-snug ${toast.title ? customDesign?.contentText || 'text-gray-300' : 'font-medium'}`}
+                    className={`text-sm wrap-break-word leading-snug ${customDesign?.contentText || (toast.title ? 'text-gray-300' : 'font-medium')}`}
                 >
                     <ToastText
                         tokens={state.parsedContent}
