@@ -14,6 +14,10 @@ const useIsomorphicLayoutEffect =
 export function useToastProviderLogic({
     store = defaultToastStore,
     customDesign,
+    classNames,
+    portalContainer,
+    portalClassName,
+    portalZIndex,
     position = 'bottom-right',
     className,
     locale = 'de',
@@ -51,6 +55,10 @@ export function useToastProviderLogic({
             storeContext,
             surfaceProps: {
                 customDesign,
+                classNames,
+                portalContainer,
+                portalClassName,
+                portalZIndex,
                 position,
                 className,
                 locale,

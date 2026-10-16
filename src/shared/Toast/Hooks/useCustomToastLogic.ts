@@ -16,7 +16,14 @@ import { useCopyToastMessage } from './useCopyToastMessage.ts'
 import { getRemainingToastTime } from '../../../lib/ToastTiming/toastTiming.ts'
 
 export function useCustomToastLogic(
-    { toast, position, onRemove, customDesign, className }: CustomToastProps,
+    {
+        toast,
+        position,
+        onRemove,
+        customDesign,
+        classNames,
+        className,
+    }: CustomToastProps,
     forwardedRef?: Ref<HTMLDivElement>,
 ): CustomToastLogicResult {
     const { refs, handler: interactionHandler } = useToastInteraction({
@@ -50,77 +57,52 @@ export function useCustomToastLogic(
 
     function getWrapperClasses() {
         let baseClasses =
-            'relative min-w-0 max-w-full overflow-hidden pointer-events-auto flex items-start gap-3 border backdrop-blur-xl'
-
+            'relative min-w-0 max-w-full overflow-hidden pointer-events-auto'
         if (!prefersReducedMotion) baseClasses += ' cursor-grab'
-
+        if (classNames?.root !== undefined)
+            return [baseClasses, classNames.root, className]
+                .filter(Boolean)
+                .join(' ')
+        baseClasses += ' flex items-start gap-3 border backdrop-blur-xl'
         if (!hasTailwindUtility(className, 'w')) baseClasses += ' w-80'
-        if (!hasTailwindUtility(className, 'rounded')) {
-            baseClasses += ' rounded-xl'
-        }
-
+        if (!hasTailwindUtility(className, 'rounded'))
+            baseClasses += ' rounded-rentner-control'
         if (!hasTailwindUtility(className, 'p')) {
             if (!hasTailwindUtility(className, 'px')) baseClasses += ' px-4'
             if (!hasTailwindUtility(className, 'py')) baseClasses += ' py-4'
         }
-
-        if (!hasTailwindUtility(className, 'shadow')) {
+        if (!hasTailwindUtility(className, 'shadow'))
             baseClasses += ' shadow-2xl'
+        const statusClasses = {
+            success:
+                'bg-[var(--rentner-surface,#022c22)]/95 border-[var(--rentner-border,#10b981)]/30 text-[color:var(--rentner-foreground,#ecfdf5)]',
+            error: 'bg-[var(--rentner-surface,#4c0519)]/95 border-[var(--rentner-border,#f43f5e)]/30 text-[color:var(--rentner-foreground,#fff1f2)]',
+            info: 'bg-[var(--rentner-surface,#172554)]/95 border-[var(--rentner-border,#3b82f6)]/30 text-[color:var(--rentner-foreground,#eff6ff)]',
+            warning:
+                'bg-[var(--rentner-surface,#451a03)]/95 border-[var(--rentner-border,#f59e0b)]/30 text-[color:var(--rentner-foreground,#fffbeb)]',
         }
-
-        if (className) {
-            baseClasses += ` ${className}`
-        }
-
-        if (toast.type === 'success') {
-            return `${baseClasses} ${
-                customDesign?.successWrapper ||
-                'bg-emerald-950/95 border-emerald-500/30 text-emerald-50'
-            }`
-        }
-
-        if (toast.type === 'error') {
-            return `${baseClasses} ${
-                customDesign?.errorWrapper ||
-                'bg-rose-950/95 border-rose-500/30 text-rose-50'
-            }`
-        }
-
-        if (toast.type === 'info') {
-            return `${baseClasses} ${
-                customDesign?.infoWrapper ||
-                'bg-blue-950/95 border-blue-500/30 text-blue-50'
-            }`
-        }
-
-        if (toast.type === 'warning') {
-            return `${baseClasses} ${
-                customDesign?.warningWrapper ||
-                'bg-amber-950/95 border-amber-500/30 text-amber-50'
-            }`
-        }
-
-        return baseClasses
+        return [
+            baseClasses,
+            className,
+            customDesign?.[`${toast.type}Wrapper`] ??
+                customDesign?.wrapper ??
+                statusClasses[toast.type],
+        ]
+            .filter(Boolean)
+            .join(' ')
     }
 
     function getProgressClasses() {
-        if (toast.type === 'success') {
-            return customDesign?.successProgress || 'bg-emerald-500'
-        }
-
-        if (toast.type === 'error') {
-            return customDesign?.errorProgress || 'bg-rose-500'
-        }
-
-        if (toast.type === 'info') {
-            return customDesign?.infoProgress || 'bg-blue-500'
-        }
-
-        if (toast.type === 'warning') {
-            return customDesign?.warningProgress || 'bg-amber-500'
-        }
-
-        return 'bg-white'
+        if (classNames?.progress !== undefined) return classNames.progress
+        const color =
+            customDesign?.[`${toast.type}Progress`] ??
+            {
+                success: 'bg-rentner-success',
+                error: 'bg-rentner-danger',
+                info: 'bg-rentner-info',
+                warning: 'bg-rentner-warning',
+            }[toast.type]
+        return `h-1 ${color}`
     }
 
     function handleCopyError(event: MouseEvent<HTMLButtonElement>) {
@@ -129,7 +111,8 @@ export function useCustomToastLogic(
     }
 
     const linkClassName =
-        customDesign?.linkText ||
+        classNames?.link ??
+        customDesign?.linkText ??
         'font-bold underline decoration-2 underline-offset-2 hover:opacity-80 motion-safe:transition-opacity cursor-pointer inline-block pointer-events-auto'
 
     const parsedTitle = useMemo(

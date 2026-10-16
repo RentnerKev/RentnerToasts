@@ -415,3 +415,64 @@ information, API declarations, usage guides, examples, and search, without
 accounts, write operations, or access to private project files. The installed
 `/ai` entry works locally without that service. Always use the documentation and
 declarations for the version installed in your project.
+
+## Shared theme and precise design slots
+
+The Tailwind entry imports the separately exported `@rentnerkev/toasts/theme.css`. All six packages understand the same `--rentner-*` values: control, surface, foreground, muted, border, accent, accent-hover, accent-foreground, danger, success, warning, info and radius. Set them on `:root`, or on your explicit portal container for scoped designs. Existing legacy theme tokens remain available. The toast status colors remain the fallback until a shared token is configured.
+
+`classNames` provides region, root, icon, body, title, content, actions, closeButton, closeIcon, copyButton, copyIcon, buttonOverlay, progress and link slots. Each visual slot replaces its default block while layout, live-region semantics and focus handling remain owned by the package. In particular, the content slot works with and without a title. The root slot replaces the complete visual card block, so include its spacing, colors and borders yourself. `customDesign.wrapper` supplies one shared status appearance; successWrapper/errorWrapper/infoWrapper/warningWrapper override it. Existing `customDesign.closeButton` and `copyButton` retain their legacy icon meaning.
+
+`portalContainer` optionally renders into an Element or DocumentFragment. Null/undefined preserves the existing inline surface and SSR output. `portalClassName` styles the region; `portalZIndex` overrides `--rentner-toast-z` (99999 by default). A custom container should be stable across renders to preserve interaction state.
+
+```tsx
+<ToastProvider
+    customDesign={{ wrapper: 'bg-white border-slate-200 text-slate-900' }}
+    classNames={{
+        content: 'text-sm text-slate-700',
+        closeButton: 'rounded-md bg-slate-100 p-2',
+        closeIcon: 'text-slate-700',
+        copyButton: 'rounded-md p-2',
+        copyIcon: 'text-blue-700',
+    }}
+>
+    <Application />
+</ToastProvider>
+```
+
+## Keyed deduplication
+
+Deduplication is opt-in and local to each store. A repeated `dedupeKey` returns the existing visible or queued toast ID without changing its text, order or timer. With no window, a key remains active for that toast's lifetime. Set a store or per-call `dedupeWindow` in milliseconds to accept a new notification after a fixed window measured from the first creation. The original notification owns that window; duplicates do not extend it. Zero disables deduplication for that call. Dismissal, timeout, queue eviction, dismissAll and disposal release the key; removing an older notification never removes a newer notification's key.
+
+```ts
+const notifications = createToastStore({ dedupeWindow: 2000 })
+const firstId = notifications.toast.error('Verbindung unterbrochen', {
+    dedupeKey: 'network-unavailable',
+})
+const sameId = notifications.toast.error('Erneuter Fehler', {
+    dedupeKey: 'network-unavailable',
+})
+// firstId === sameId during the first creation's 2000 ms window.
+```
+
+## Optional error adapter
+
+The UI-free `@rentnerkev/toasts/errors` entry exports `resolveToastError` and `createToastErrorAdapter` (also available from the root). The default resolver reads strings and string message properties, including Error.message. Empty, unknown or failed normalizations use a configurable fallback. No application error classes, schema libraries or network clients are required. Applications can normalize their own errors into a string or `ToastContentOptions` with title/duration options. Per-call options take precedence over normalized options.
+
+```ts
+import { createToastErrorAdapter } from '@rentnerkev/toasts/errors'
+
+const reportError = createToastErrorAdapter({
+    api: notifications.toast,
+    fallbackMessage: 'Speichern fehlgeschlagen. Bitte erneut versuchen.',
+    dedupeKey: (_error, content) => content,
+    normalize: (error) => (error instanceof Error ? error.message : undefined),
+})
+
+try {
+    await saveSettings()
+} catch (error) {
+    reportError(error, { title: 'Einstellungen', duration: 8000 })
+}
+```
+
+Keyed deduplication applies to the four direct status calls. Promise notifications retain independent loading/settlement lifecycles, so their message types deliberately reject dedupeKey/dedupeWindow.

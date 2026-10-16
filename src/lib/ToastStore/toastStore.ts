@@ -6,6 +6,7 @@ import type {
 import type {
     Toast,
     ToastDefaults,
+    ToastDedupeOptions,
     ToastId,
     ToastPauseReason,
     ToastStore,
@@ -21,6 +22,14 @@ import {
 } from '../ToastTiming/toastTiming.ts'
 
 const DEFAULT_MAX_VISIBLE_TOASTS = 3
+
+function normalizeDedupeWindow(value: number | undefined, fallback: number) {
+    return value !== undefined &&
+        value >= 0 &&
+        (Number.isFinite(value) || value === Infinity)
+        ? value
+        : fallback
+}
 
 function normalizeMaxVisibleToasts(
     value: number | undefined,
@@ -147,6 +156,22 @@ export function createToastStoreCore(
     let baseToastDefaults = getInitialDefaults(options)
     let toastDefaults = baseToastDefaults
     const toastOrder: ToastId[] = []
+    const dedupeByKey = new Map<
+        string,
+        { id: ToastId; createdAt: number; window: number }
+    >()
+    const dedupeKeysById = new Map<ToastId, string>()
+    const defaultDedupeWindow = normalizeDedupeWindow(
+        options.dedupeWindow,
+        Infinity,
+    )
+
+    function forgetDedupe(id: ToastId) {
+        const key = dedupeKeysById.get(id)
+        if (key !== undefined && dedupeByKey.get(key)?.id === id)
+            dedupeByKey.delete(key)
+        dedupeKeysById.delete(id)
+    }
     const toastsById = new Map<ToastId, Toast>()
     let snapshot: readonly Toast[] | undefined = Object.freeze([])
     const maxQueuedToasts =
@@ -309,7 +334,22 @@ export function createToastStoreCore(
         title?: string,
         type: ToastType = 'success',
         duration: number = toastDefaults.duration,
+        dedupe: ToastDedupeOptions = {},
     ): ToastId {
+        const createdAt = Date.now()
+        const dedupeWindow = normalizeDedupeWindow(
+            dedupe.dedupeWindow,
+            defaultDedupeWindow,
+        )
+        if (dedupe.dedupeKey !== undefined && dedupeWindow > 0) {
+            const previous = dedupeByKey.get(dedupe.dedupeKey)
+            if (
+                previous &&
+                toastsById.has(previous.id) &&
+                createdAt - previous.createdAt < previous.window
+            )
+                return previous.id
+        }
         const normalizedDuration = normalizeToastDuration(
             duration,
             toastDefaults.duration,
@@ -326,10 +366,18 @@ export function createToastStoreCore(
                 title,
                 type,
                 duration: normalizedDuration,
-                createdAt: Date.now(),
+                createdAt,
                 remaining: normalizedDuration,
             }),
         )
+        if (dedupe.dedupeKey !== undefined && dedupeWindow > 0) {
+            dedupeByKey.set(dedupe.dedupeKey, {
+                id,
+                createdAt,
+                window: dedupeWindow,
+            })
+            dedupeKeysById.set(id, dedupe.dedupeKey)
+        }
         toastOrder.push(id)
         snapshot = undefined
         if (
@@ -339,6 +387,7 @@ export function createToastStoreCore(
             const evicted = toastOrder.shift()!
             cancelAutoDismiss(evicted)
             pauseReasons.delete(evicted)
+            forgetDedupe(evicted)
             toastsById.delete(evicted)
         }
         syncToastTimers()
@@ -396,6 +445,7 @@ export function createToastStoreCore(
     function remove(id: ToastId) {
         cancelAutoDismiss(id)
         pauseReasons.delete(id)
+        forgetDedupe(id)
 
         if (!toastsById.delete(id)) return
         toastOrder.splice(toastOrder.indexOf(id), 1)
@@ -434,6 +484,8 @@ export function createToastStoreCore(
         toastTimers.forEach(({ handle }) => globalThis.clearTimeout(handle))
         toastTimers.clear()
         pauseReasons.clear()
+        dedupeByKey.clear()
+        dedupeKeysById.clear()
 
         if (toastOrder.length === 0) return
         toastOrder.length = 0

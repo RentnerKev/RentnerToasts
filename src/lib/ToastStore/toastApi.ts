@@ -62,6 +62,7 @@ export function createToastApi(store: ToastApiStore): ToastApi {
             options?.title,
             type,
             options?.duration,
+            options,
         )
     }
 

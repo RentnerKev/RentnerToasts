@@ -67,6 +67,7 @@ export interface ToastTextProps {
     className: string
 }
 export interface ToastIconProps {
+    className?: string
     type: ToastType
     customDesign?: ToastCustomDesign
 }

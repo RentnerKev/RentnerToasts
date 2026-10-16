@@ -56,10 +56,10 @@ test('renders queued notifications in their final localized SSR surface', () => 
 })
 
 test.each([
-    ['success', 'bg-emerald-950/95'],
-    ['error', 'bg-rose-950/95'],
-    ['info', 'bg-blue-950/95'],
-    ['warning', 'bg-amber-950/95'],
+    ['success', 'bg-[var(--rentner-surface,#022c22)]/95'],
+    ['error', 'bg-[var(--rentner-surface,#4c0519)]/95'],
+    ['info', 'bg-[var(--rentner-surface,#172554)]/95'],
+    ['warning', 'bg-[var(--rentner-surface,#451a03)]/95'],
 ] as const)(
     'renders %s with its final design on the first render',
     (type, background) => {
@@ -139,7 +139,7 @@ test.each([undefined, 'Configured title'])(
 
 test.each([
     [undefined, 'font-medium'],
-    ['Configured title', 'text-gray-300'],
+    ['Configured title', 'text-[color:var(--rentner-muted,#d1d5db)]'],
 ])(
     'preserves default content classes when the title is %s',
     (title, defaultClass) => {
@@ -162,3 +162,34 @@ test.each([
         }
     },
 )
+
+test('applies root, progress and link slots through the toast logic without competing defaults', () => {
+    const store = createToastStore()
+    try {
+        store.toast.info('Read [help](https://example.com/help)', {
+            duration: 6000,
+        })
+        const markup = renderToStaticMarkup(
+            <ToastProvider
+                store={store}
+                classNames={{
+                    root: 'bg-purple-950 p-2',
+                    progress: 'h-0 bg-fuchsia-500',
+                    link: 'text-sky-700',
+                }}
+            >
+                <p>Application</p>
+            </ToastProvider>,
+        )
+        expect(markup).toContain('bg-purple-950 p-2')
+        expect(markup).not.toContain('px-4')
+        expect(markup).not.toContain('bg-[var(--rentner-surface')
+        expect(markup).toContain('origin-left h-0 bg-fuchsia-500')
+        expect(markup).not.toContain('bg-rentner-info')
+        expect(markup).not.toMatch(/origin-left h-1/)
+        expect(markup).toContain('class="text-sky-700"')
+        expect(markup).not.toContain('underline-offset-2')
+    } finally {
+        store.dispose()
+    }
+})

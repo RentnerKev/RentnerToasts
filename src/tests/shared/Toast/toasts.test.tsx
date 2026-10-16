@@ -26,7 +26,9 @@ describe('toast API', () => {
         expect(Object.keys(publicApi).toSorted()).toEqual([
             'LazyToastProvider',
             'ToastProvider',
+            'createToastErrorAdapter',
             'createToastStore',
+            'resolveToastError',
             'resolveToastMessages',
             'toast',
             'toastMessageCatalog',

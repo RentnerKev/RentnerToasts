@@ -12,11 +12,13 @@ export type {
     ToastId,
     ToastOptions,
     ToastPosition,
+    ToastPromiseContentOptions,
     ToastPromiseInput,
     ToastPromiseLoadingMessage,
     ToastPromiseMessage,
     ToastPromiseOptions,
     ToastDefaults,
+    ToastDedupeOptions,
     ToastPauseReason,
     ToastStore,
     ToastStoreOptions,
@@ -30,5 +32,17 @@ export type {
 
 export type {
     ToastCustomDesign,
+    ToastClassNames,
+    ToastPortalOptions,
     ToastProviderProps,
 } from './shared/Toast/Types/toast-ui.types.ts'
+
+export {
+    createToastErrorAdapter,
+    resolveToastError,
+} from './lib/ToastError/toastError.ts'
+export type {
+    ToastErrorAdapter,
+    ToastErrorAdapterOptions,
+    ToastErrorOptions,
+} from './lib/ToastError/Types/toast-error.types.ts'

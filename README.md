@@ -102,3 +102,5 @@ information, API declarations, usage guides, examples, and search, without
 accounts, write operations, or access to private project files. The installed
 `/ai` entry works locally without that service. Always use the documentation and
 declarations for the version installed in your project.
+
+Shared theme tokens, replaceable design slots, custom portals, keyed deduplication and the optional error adapter are documented in [the usage guide](docs/usage.md#shared-theme-and-precise-design-slots).

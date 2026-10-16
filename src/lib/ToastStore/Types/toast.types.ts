@@ -18,12 +18,22 @@ export interface Toast {
     readonly timerStartedAt?: number
 }
 
-export interface ToastOptions {
+export interface ToastDedupeOptions {
+    /** Reuse an active notification with this key instead of adding a duplicate. */
+    dedupeKey?: string
+    /** Milliseconds from creation; defaults to the store window (active lifetime). Zero disables deduplication. */
+    dedupeWindow?: number
+}
+
+export interface ToastOptions extends ToastDedupeOptions {
     title?: string
     duration?: number
 }
 
-export interface ToastContentOptions extends ToastOptions {
+export interface ToastContentOptions extends Omit<
+    ToastOptions,
+    keyof ToastDedupeOptions
+> {
     content: string
 }
 
@@ -34,14 +44,23 @@ export interface ToastUpdateOptions {
     duration?: number
 }
 
+/** Promise notifications have independent lifecycles; deduplication is only supported by direct status calls. */
+export type ToastPromiseContentOptions = Omit<
+    ToastContentOptions,
+    keyof ToastDedupeOptions
+> & {
+    dedupeKey?: never
+    dedupeWindow?: never
+}
+
 export type ToastPromiseMessage<T> =
     | string
-    | ToastContentOptions
-    | ((value: T) => string | ToastContentOptions)
+    | ToastPromiseContentOptions
+    | ((value: T) => string | ToastPromiseContentOptions)
 
 export type ToastPromiseLoadingMessage =
     | string
-    | Omit<ToastContentOptions, 'duration'>
+    | Omit<ToastPromiseContentOptions, 'duration'>
 
 export interface ToastPromiseOptions<T> {
     loading: ToastPromiseLoadingMessage
@@ -72,6 +91,8 @@ export interface ToastDefaults {
 }
 
 export interface ToastStoreOptions {
+    /** Default deduplication window for keyed notifications. Defaults to Infinity. */
+    dedupeWindow?: number
     defaultDuration?: number
     maxVisibleToasts?: number
     /** Optional total queue limit, including visible toasts. Evicts the oldest. */
@@ -90,6 +111,7 @@ export interface ToastStore {
         title?: string,
         type?: ToastType,
         duration?: number,
+        options?: ToastDedupeOptions,
     ) => ToastId
     updateToast: (id: ToastId, options: ToastUpdateOptions) => boolean
     removeToast: (id: ToastId) => void

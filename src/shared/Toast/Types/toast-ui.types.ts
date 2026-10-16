@@ -17,27 +17,54 @@ import type {
     ToastStore,
     ToastPosition,
 } from '../../../lib/ToastStore/Types/toast.types.ts'
+export interface ToastClassNames {
+    region?: string
+    root?: string
+    icon?: string
+    body?: string
+    title?: string
+    content?: string
+    actions?: string
+    closeButton?: string
+    closeIcon?: string
+    copyButton?: string
+    copyIcon?: string
+    buttonOverlay?: string
+    progress?: string
+    link?: string
+}
+
+export interface ToastPortalOptions {
+    /** Undefined/null preserves the inline surface; an explicit container creates a portal. */
+    portalContainer?: Element | DocumentFragment | null
+    portalClassName?: string
+    portalZIndex?: number
+}
+
 export interface CustomToastProps {
     toast: Toast
     position: ToastPosition
     onRemove: (id: string) => void
     customDesign?: ToastCustomDesign
+    classNames?: ToastClassNames
     className?: string
     messages: ToastMessages
 }
 
-export interface ToastProps {
+export interface ToastProps extends ToastPortalOptions {
     customDesign?: ToastCustomDesign
+    classNames?: ToastClassNames
     position: ToastPosition
     className?: string
     locale?: ToastLocale
     messages?: Partial<ToastMessages>
 }
 
-export interface ToastProviderProps {
+export interface ToastProviderProps extends ToastPortalOptions {
     children: ReactNode
     store?: ToastStore
     customDesign?: ToastCustomDesign
+    classNames?: ToastClassNames
     position?: ToastPosition
     className?: string
     locale?: ToastLocale
@@ -75,6 +102,8 @@ export interface UseCustomToastLogicResult {
 }
 
 export interface ToastCustomDesign {
+    /** Shared status appearance; a specific status wrapper takes precedence. */
+    wrapper?: string
     successWrapper?: string
     errorWrapper?: string
     infoWrapper?: string
@@ -92,7 +121,9 @@ export interface ToastCustomDesign {
 
     titleText?: string
     contentText?: string
+    /** Legacy icon classes. Prefer classNames.closeIcon for new integrations. */
     closeButton?: string
+    /** Legacy icon classes. Prefer classNames.copyIcon for new integrations. */
     copyButton?: string
     linkText?: string
 }

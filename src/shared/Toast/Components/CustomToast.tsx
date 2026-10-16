@@ -14,6 +14,7 @@ export function CustomToast({
     position,
     onRemove,
     customDesign,
+    classNames,
     className,
     messages,
     ref,
@@ -28,6 +29,7 @@ export function CustomToast({
             position,
             onRemove,
             customDesign,
+            classNames,
             className,
             messages,
         },
@@ -57,13 +59,19 @@ export function CustomToast({
             className={state.wrapperClasses}
         >
             <div className="mt-0.5 shrink-0">
-                <ToastIcon type={toast.type} customDesign={customDesign} />
+                <ToastIcon
+                    type={toast.type}
+                    customDesign={customDesign}
+                    className={classNames?.icon}
+                />
             </div>
 
-            <div className="flex flex-col gap-1 flex-1 min-w-0">
+            <div
+                className={`min-w-0 ${classNames?.body ?? 'flex flex-col gap-1 flex-1'}`}
+            >
                 {toast.title && (
                     <span
-                        className={`text-sm font-semibold tracking-tight wrap-break-word ${customDesign?.titleText || 'text-gray-50'}`}
+                        className={`wrap-break-word ${classNames?.title ?? `text-sm font-semibold tracking-tight ${customDesign?.titleText ?? 'text-[color:var(--rentner-foreground,#f9fafb)]'}`}`}
                     >
                         <ToastText
                             tokens={state.parsedTitle}
@@ -72,7 +80,7 @@ export function CustomToast({
                     </span>
                 )}
                 <span
-                    className={`text-sm wrap-break-word leading-snug ${customDesign?.contentText || (toast.title ? 'text-gray-300' : 'font-medium')}`}
+                    className={`wrap-break-word ${classNames?.content ?? `text-sm leading-snug ${customDesign?.contentText ?? (toast.title ? 'text-[color:var(--rentner-muted,#d1d5db)]' : 'font-medium')}`}`}
                 >
                     <ToastText
                         tokens={state.parsedContent}
@@ -81,7 +89,12 @@ export function CustomToast({
                 </span>
             </div>
 
-            <div className="-mr-1.5 -mt-1.5 flex shrink-0 items-center gap-1">
+            <div
+                className={
+                    classNames?.actions ??
+                    '-mr-1.5 -mt-1.5 flex shrink-0 items-center gap-1'
+                }
+            >
                 {toast.type === 'error' && (
                     <motion.button
                         type="button"
@@ -97,20 +110,23 @@ export function CustomToast({
                                 ? messages.errorCopied
                                 : messages.copyError
                         }
-                        className="relative group shrink-0 cursor-pointer touch-manipulation rounded-full p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+                        className={`relative group shrink-0 cursor-pointer touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent focus-visible:ring-offset-2 ${classNames?.copyButton ?? 'rounded-full p-1.5'}`}
                     >
-                        <span className="absolute inset-0 rounded-full bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none" />
+                        <span
+                            aria-hidden="true"
+                            className={`absolute inset-0 pointer-events-none ${classNames?.buttonOverlay ?? 'rounded-full bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none'}`}
+                        />
                         {state.copied ? (
                             <Check
                                 size={14}
                                 aria-hidden="true"
-                                className={`relative z-10 transition-colors duration-300 motion-reduce:transition-none ${customDesign?.copyButton || 'text-emerald-300 group-hover:text-emerald-200'}`}
+                                className={`relative z-10 transition-colors duration-300 motion-reduce:transition-none ${classNames?.copyIcon ?? customDesign?.copyButton ?? 'text-emerald-300 group-hover:text-emerald-200'}`}
                             />
                         ) : (
                             <Copy
                                 size={14}
                                 aria-hidden="true"
-                                className={`relative z-10 transition-colors duration-300 motion-reduce:transition-none ${customDesign?.copyButton || 'text-gray-400 group-hover:text-white'}`}
+                                className={`relative z-10 transition-colors duration-300 motion-reduce:transition-none ${classNames?.copyIcon ?? customDesign?.copyButton ?? 'text-gray-400 group-hover:text-white'}`}
                             />
                         )}
                     </motion.button>
@@ -122,9 +138,12 @@ export function CustomToast({
                     whileHover={state.dragEnabled ? { scale: 1.15 } : undefined}
                     whileTap={state.dragEnabled ? { scale: 0.85 } : undefined}
                     aria-label={messages.closeNotification}
-                    className="relative group shrink-0 cursor-pointer touch-manipulation overflow-hidden rounded-full p-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black/20"
+                    className={`relative group shrink-0 cursor-pointer touch-manipulation overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent focus-visible:ring-offset-2 ${classNames?.closeButton ?? 'rounded-full p-1.5'}`}
                 >
-                    <span className="absolute inset-0 rounded-full bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none" />
+                    <span
+                        aria-hidden="true"
+                        className={`absolute inset-0 pointer-events-none ${classNames?.buttonOverlay ?? 'rounded-full bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none'}`}
+                    />
                     <motion.div
                         transition={closeButtonIconTransition}
                         variants={closeButtonIconVariants}
@@ -135,7 +154,7 @@ export function CustomToast({
                         <X
                             size={14}
                             aria-hidden="true"
-                            className={`transition-colors duration-300 motion-reduce:transition-none ${customDesign?.closeButton || 'text-gray-400 group-hover:text-white'}`}
+                            className={`transition-colors duration-300 motion-reduce:transition-none ${classNames?.closeIcon ?? customDesign?.closeButton ?? 'text-gray-400 group-hover:text-white'}`}
                         />
                     </motion.div>
                 </motion.button>
@@ -156,7 +175,7 @@ export function CustomToast({
                     }}
                     aria-hidden="true"
                     data-testid="toast-progress"
-                    className={`absolute bottom-0 left-0 h-1 w-full origin-left ${state.progressClasses}`}
+                    className={`absolute bottom-0 left-0 w-full origin-left ${state.progressClasses}`}
                 />
             )}
         </motion.div>

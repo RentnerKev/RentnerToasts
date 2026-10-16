@@ -1,3 +1,4 @@
+import { DesignExamples } from './Components/DesignExamples.tsx'
 import { ToastActions } from './Components/ToastActions.tsx'
 import { ToastProvider } from '@rentnerkev/toasts'
 import { usePlaygroundLogic } from './Hooks/usePlaygroundLogic.ts'
@@ -23,6 +24,7 @@ export function App() {
             <ToastProvider className="w-100" position="bottom-left">
                 <ToastActions handler={handler} />
             </ToastProvider>
+            <DesignExamples />
         </div>
     )
 }

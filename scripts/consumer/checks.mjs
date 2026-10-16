@@ -185,6 +185,8 @@ export async function checkProviderCompatibility({ browser, url, expect }) {
             reducedMotion: 'no-preference',
         })
         const page = await context.newPage()
+        page.setDefaultTimeout(15000)
+        page.setDefaultNavigationTimeout(30000)
         try {
             const errors = []
             const scriptRequests = []
@@ -232,10 +234,10 @@ export async function checkProviderCompatibility({ browser, url, expect }) {
             })
             notificationsStarted = true
             for (const [variant, background] of [
-                ['info', 'bg-blue-950/95'],
-                ['success', 'bg-emerald-950/95'],
-                ['error', 'bg-rose-950/95'],
-                ['warning', 'bg-amber-950/95'],
+                ['info', 'bg-[var(--rentner-surface,#172554)]/95'],
+                ['success', 'bg-[var(--rentner-surface,#022c22)]/95'],
+                ['error', 'bg-[var(--rentner-surface,#4c0519)]/95'],
+                ['warning', 'bg-[var(--rentner-surface,#451a03)]/95'],
             ]) {
                 await page
                     .getByRole('button', {

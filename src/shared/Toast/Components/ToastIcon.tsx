@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle, Info, TriangleAlert } from 'lucide-react'
 import type { ToastIconProps } from '../Types/toast-logic.types.ts'
-export function ToastIcon({ type, customDesign }: ToastIconProps) {
+export function ToastIcon({ type, customDesign, className }: ToastIconProps) {
     const Icon =
         type === 'success'
             ? CheckCircle
@@ -14,17 +14,17 @@ export function ToastIcon({ type, customDesign }: ToastIconProps) {
     if (!Icon) return null
     const color =
         type === 'success'
-            ? 'text-emerald-400'
+            ? 'text-rentner-success'
             : type === 'error'
-              ? 'text-rose-400'
+              ? 'text-rentner-danger'
               : type === 'warning'
-                ? 'text-amber-400'
-                : 'text-blue-400'
+                ? 'text-rentner-warning'
+                : 'text-rentner-info'
     return (
         <Icon
             size={18}
             aria-hidden="true"
-            className={customDesign?.[`${type}Icon`] || color}
+            className={className ?? customDesign?.[`${type}Icon`] ?? color}
         />
     )
 }
