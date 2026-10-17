@@ -25,6 +25,7 @@ describe('toast API', () => {
     test('exposes only the intended public API', () => {
         expect(Object.keys(publicApi).toSorted()).toEqual([
             'LazyToastProvider',
+            'ToastFocusScopeBranch',
             'ToastProvider',
             'createToastErrorAdapter',
             'createToastStore',
