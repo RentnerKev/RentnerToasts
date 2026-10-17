@@ -36,6 +36,7 @@ export interface ToastSnapshotResult {
 
 export interface ToastSurfaceResult {
     state: {
+        regionId: string
         visibleToasts: readonly Toast[]
         messages: ToastMessages
         positionClasses: string
@@ -78,6 +79,10 @@ export interface UseCopyToastMessageResult {
     handler: {
         copyToastMessage: () => Promise<boolean>
     }
+}
+
+export interface ToastRegionBranchProps {
+    node: HTMLElement
 }
 
 export interface ToastInteractionProps {

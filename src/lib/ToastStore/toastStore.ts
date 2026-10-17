@@ -47,6 +47,10 @@ function getInitialDefaults(options: ToastStoreOptions): ToastDefaults {
                 options.defaultDuration,
                 DEFAULT_TOAST_DURATION,
             ) ?? DEFAULT_TOAST_DURATION,
+        pauseWhenQueued:
+            typeof options.pauseWhenQueued === 'boolean'
+                ? options.pauseWhenQueued
+                : true,
         maxVisibleToasts: normalizeMaxVisibleToasts(
             options.maxVisibleToasts,
             DEFAULT_MAX_VISIBLE_TOASTS,
@@ -66,6 +70,10 @@ function normalizeToastDefaults(
                       defaults.duration,
                       fallback.duration,
                   ) ?? fallback.duration),
+        pauseWhenQueued:
+            typeof defaults.pauseWhenQueued === 'boolean'
+                ? defaults.pauseWhenQueued
+                : (fallback.pauseWhenQueued ?? true),
         maxVisibleToasts:
             defaults.maxVisibleToasts === undefined
                 ? fallback.maxVisibleToasts
@@ -105,6 +113,7 @@ export function registerToastProviderDefaults(
             baseDefaults: Object.freeze({
                 duration: currentDefaults.duration,
                 maxVisibleToasts: currentDefaults.maxVisibleToasts,
+                pauseWhenQueued: currentDefaults.pauseWhenQueued ?? true,
             }),
             providers: new Map(),
         }
@@ -223,20 +232,22 @@ export function createToastStoreCore(
     }
 
     function syncToastTimers() {
-        const visibleIds = new Set(
-            toastOrder.slice(-toastDefaults.maxVisibleToasts),
+        const activeIds = new Set(
+            toastDefaults.pauseWhenQueued === false
+                ? toastOrder
+                : toastOrder.slice(-toastDefaults.maxVisibleToasts),
         )
-        // Only visible notifications can own a timer. Work stays bounded by
-        // the display window even when the persistent queue is large.
+        // The default remains bounded by the visible window. Opting out of
+        // queue pauses starts every timed notification at creation.
         for (const id of toastTimers.keys()) {
             const toast = toastsById.get(id)
-            if (!toast || !visibleIds.has(id) || pauseReasons.get(id)?.size) {
+            if (!toast || !activeIds.has(id) || pauseReasons.get(id)?.size) {
                 const remaining = toast && getRemainingToastTime(toast)
                 cancelAutoDismiss(id)
                 if (remaining !== undefined) replaceToastTiming(id, remaining)
             }
         }
-        for (const id of visibleIds) {
+        for (const id of activeIds) {
             const toast = toastsById.get(id)
             if (!toast) continue
             const shouldRun =
@@ -295,6 +306,7 @@ export function createToastStoreCore(
         baseToastDefaults = Object.freeze({
             duration: defaults.duration,
             maxVisibleToasts: defaults.maxVisibleToasts,
+            pauseWhenQueued: defaults.pauseWhenQueued ?? true,
         })
         applyProviderDefaults()
     }

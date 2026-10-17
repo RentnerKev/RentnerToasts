@@ -24,6 +24,7 @@ export function useToastProviderLogic({
     messages,
     defaultDuration,
     maxVisibleToasts,
+    pauseWhenQueued,
 }: ToastProviderLogicProps): ToastProviderLogicResult {
     const [defaultsOwner] = useState(() => Symbol('toast-provider-defaults'))
     const defaultsDisposers = useRef(new Map<ToastStore, () => void>())
@@ -32,9 +33,16 @@ export function useToastProviderLogic({
         const dispose = registerToastProviderDefaults(store, defaultsOwner, {
             duration: defaultDuration,
             maxVisibleToasts,
+            pauseWhenQueued,
         })
         defaultsDisposers.current.set(store, dispose)
-    }, [defaultDuration, defaultsOwner, maxVisibleToasts, store])
+    }, [
+        defaultDuration,
+        defaultsOwner,
+        maxVisibleToasts,
+        pauseWhenQueued,
+        store,
+    ])
 
     // Changing values preserves provider precedence; only unmount/store switch
     // releases this owner's registration.

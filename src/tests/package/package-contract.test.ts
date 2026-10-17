@@ -38,6 +38,7 @@ describe('published package contract', () => {
             './ai',
             './theme.css',
             './errors',
+            './radix',
         ])
         expect(packageJson.exports['./toast']).toEqual({
             types: './dist/lib/ToastStore/toastApi.d.ts',

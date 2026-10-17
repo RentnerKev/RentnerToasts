@@ -43,10 +43,12 @@ describe('isolated toast stores', () => {
         expect(firstStore.getToastDefaults()).toEqual({
             duration: 1111,
             maxVisibleToasts: 1,
+            pauseWhenQueued: true,
         })
         expect(secondStore.getToastDefaults()).toEqual({
             duration: 6000,
             maxVisibleToasts: 3,
+            pauseWhenQueued: true,
         })
         expect(firstStore.getToastSnapshot()).toEqual([
             expect.objectContaining({ id: firstId, content: 'Erster Root' }),
@@ -86,18 +88,21 @@ describe('isolated toast stores', () => {
         expect(store.getToastDefaults()).toEqual({
             duration: 2000,
             maxVisibleToasts: 4,
+            pauseWhenQueued: true,
         })
 
         removeFirstProvider()
         expect(store.getToastDefaults()).toEqual({
             duration: 1000,
             maxVisibleToasts: 4,
+            pauseWhenQueued: true,
         })
 
         removeSecondProvider()
         expect(store.getToastDefaults()).toEqual({
             duration: 1000,
             maxVisibleToasts: 2,
+            pauseWhenQueued: true,
         })
     })
 
@@ -123,12 +128,14 @@ describe('isolated toast stores', () => {
         expect(customStore.getToastDefaults()).toEqual({
             duration: 1000,
             maxVisibleToasts: 4,
+            pauseWhenQueued: true,
         })
 
         removeSecondProvider()
         expect(customStore.getToastDefaults()).toEqual({
             duration: 1000,
             maxVisibleToasts: 2,
+            pauseWhenQueued: true,
         })
     })
 

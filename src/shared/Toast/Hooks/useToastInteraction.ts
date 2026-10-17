@@ -12,6 +12,8 @@ import type {
     ToastInteractionResult,
 } from '../Types/toast-logic.types.ts'
 import { useToastStore } from './useToastStore.ts'
+const returnFocusTargets = new WeakMap<Element, HTMLElement>()
+
 export function useToastInteraction({
     id,
     forwardedRef,
@@ -22,6 +24,12 @@ export function useToastInteraction({
     const wrapper = useRef<HTMLDivElement | null>(null)
     useImperativeHandle(forwardedRef, () => wrapper.current!)
     const setWrapperRef = useCallback((node: HTMLDivElement | null) => {
+        const previous = wrapper.current
+        if (!node && previous?.contains(previous.ownerDocument.activeElement)) {
+            const region = previous.closest('[data-rentner-toast-region]')
+            const target = region && returnFocusTargets.get(region)
+            if (target?.isConnected) target.focus({ preventScroll: true })
+        }
         wrapper.current = node
     }, [])
     useEffect(() => {
@@ -46,6 +54,21 @@ export function useToastInteraction({
         store.setToastPauseReason(id, reason, paused, pauseOwner)
     }
 
+    function handleFocus(event: FocusEvent<HTMLDivElement>) {
+        const region = event.currentTarget.closest(
+            '[data-rentner-toast-region]',
+        )
+        const previous = event.relatedTarget
+        if (
+            region &&
+            previous instanceof HTMLElement &&
+            !region.contains(previous)
+        ) {
+            returnFocusTargets.set(region, previous)
+        }
+        setInteractionPause('focus', true)
+    }
+
     function handleBlur(event: FocusEvent<HTMLDivElement>) {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
             setInteractionPause('focus', false)
@@ -57,7 +80,7 @@ export function useToastInteraction({
         handler: {
             handleMouseEnter: () => setInteractionPause('hover', true),
             handleMouseLeave: () => setInteractionPause('hover', false),
-            handleFocus: () => setInteractionPause('focus', true),
+            handleFocus,
             handleBlur,
         },
     }

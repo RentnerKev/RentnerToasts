@@ -1,3 +1,4 @@
+import { useToastPortalContainer } from '../Hooks/useToastPortalContainer.ts'
 import { useToastSurface } from '../Hooks/useToastSurface.ts'
 import { CustomToast } from './CustomToast.tsx'
 import type { ToastProps } from '../Types/toast-ui.types.ts'
@@ -15,11 +16,16 @@ export function Toast({
     portalClassName,
     portalZIndex,
 }: ToastProps) {
+    const container = useToastPortalContainer(portalContainer)
     const { state, handler } = useToastSurface({ position, locale, messages })
+    if (portalContainer === 'body' && !container) return null
     const surface = (
         <MotionConfig reducedMotion="user">
             <section
+                id={state.regionId}
                 aria-label={state.messages.regionLabel}
+                aria-live="off"
+                data-rentner-toast-region=""
                 className={[
                     'fixed z-[var(--rentner-toast-z,99999)] flex max-w-full pointer-events-none',
                     state.positionClasses,
@@ -55,7 +61,7 @@ export function Toast({
             </section>
         </MotionConfig>
     )
-    return portalContainer && typeof document !== 'undefined'
-        ? createPortal(surface, portalContainer)
+    return container && typeof document !== 'undefined'
+        ? createPortal(surface, container)
         : surface
 }

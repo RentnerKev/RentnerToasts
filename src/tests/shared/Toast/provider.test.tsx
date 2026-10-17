@@ -21,6 +21,23 @@ test('renders empty providers during SSR without a Suspense boundary', () => {
     }
 })
 
+test('defers a body portal until hydration while retaining application SSR content', () => {
+    const store = createToastStore()
+    try {
+        store.toast.error('Browser notification', { duration: 0 })
+        expect(
+            renderToStaticMarkup(
+                <ToastProvider store={store} portalContainer="body">
+                    <p>Application</p>
+                </ToastProvider>,
+            ),
+        ).toBe('<p>Application</p>')
+        expect(store.getToastSnapshot()).toHaveLength(1)
+    } finally {
+        store.dispose()
+    }
+})
+
 test('renders queued notifications in their final localized SSR surface', () => {
     const store = createToastStore({ maxVisibleToasts: 2 })
     try {

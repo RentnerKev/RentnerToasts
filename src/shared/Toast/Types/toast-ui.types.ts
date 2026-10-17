@@ -35,8 +35,8 @@ export interface ToastClassNames {
 }
 
 export interface ToastPortalOptions {
-    /** Undefined/null preserves the inline surface; an explicit container creates a portal. */
-    portalContainer?: Element | DocumentFragment | null
+    /** Undefined/null renders inline. 'body' creates a global portal after hydration without browser-only app code. */
+    portalContainer?: Element | DocumentFragment | 'body' | null
     portalClassName?: string
     portalZIndex?: number
 }
@@ -71,6 +71,8 @@ export interface ToastProviderProps extends ToastPortalOptions {
     messages?: Partial<ToastMessages>
     defaultDuration?: number
     maxVisibleToasts?: number
+    /** Store-wide queue timer policy, including direct toast.* calls. */
+    pauseWhenQueued?: boolean
 }
 
 export interface UseCustomToastLogicResult {
@@ -96,7 +98,7 @@ export interface UseCustomToastLogicResult {
         handleDragEnd: NonNullable<MotionProps['onDragEnd']>
         handleMouseEnter: () => void
         handleMouseLeave: () => void
-        handleFocus: () => void
+        handleFocus: (event: FocusEvent<HTMLDivElement>) => void
         handleBlur: (event: FocusEvent<HTMLDivElement>) => void
     }
 }

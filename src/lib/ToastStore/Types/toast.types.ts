@@ -88,6 +88,8 @@ export interface ToastApi {
 export interface ToastDefaults {
     readonly duration: number
     readonly maxVisibleToasts: number
+    /** Pause timers outside the visible window. Defaults to true; false expires queued toasts too. */
+    readonly pauseWhenQueued?: boolean
 }
 
 export interface ToastStoreOptions {
@@ -95,6 +97,8 @@ export interface ToastStoreOptions {
     dedupeWindow?: number
     defaultDuration?: number
     maxVisibleToasts?: number
+    /** Defaults to true. Set false to count down queued notifications as well. */
+    pauseWhenQueued?: boolean
     /** Optional total queue limit, including visible toasts. Evicts the oldest. */
     maxQueuedToasts?: number
 }

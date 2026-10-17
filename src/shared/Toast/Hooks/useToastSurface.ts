@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { useToastSnapshot } from './useToastSnapshot.ts'
 import { resolveToastMessages } from '../../../lib/Messages/toastMessages.ts'
 import { toastPositionClasses } from '../../../config/toast-position.config.ts'
@@ -11,9 +12,11 @@ export function useToastSurface({
     locale = 'de',
     messages,
 }: ToastSurfaceProps): ToastSurfaceResult {
+    const regionId = useId()
     const { state, handler } = useToastSnapshot()
     return {
         state: {
+            regionId,
             visibleToasts: state.visibleToasts,
             messages: resolveToastMessages(locale, messages),
             positionClasses:
