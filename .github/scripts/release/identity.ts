@@ -1,4 +1,9 @@
-import type { SelectedRelease, VerifiedRelease } from './Types/release.types.ts'
+import type {
+    ReleaseCheckoutOperations,
+    SelectedRelease,
+    VerifiedSourceRelease,
+} from './Types/release.types.ts'
+import { isDeepStrictEqual } from 'node:util'
 import { repositoryPolicy } from '../lib/repository.ts'
 import {
     isPackageIdentity,
@@ -56,56 +61,88 @@ export function selectedRelease(): SelectedRelease {
     return { release, tag, version, repository }
 }
 
-export function verifyCheckout(): VerifiedRelease {
-    const selected = selectedRelease()
-    const { packageName } = repositoryPolicy()
-    const manifest = parseJson(
-        readFileSync('package.json', 'utf8'),
-        isPackageIdentity,
+export const checkoutOperations: ReleaseCheckoutOperations = {
+    select: selectedRelease,
+    packageName: () => repositoryPolicy().packageName,
+    command,
+    readManifest: () => readFileSync('package.json', 'utf8'),
+}
+
+export function verifySourceCheckout(
+    operations: ReleaseCheckoutOperations = checkoutOperations,
+): VerifiedSourceRelease {
+    const selected = operations.select()
+    if (
+        stableVersion(selected.tag) !== selected.version ||
+        !validRelease(selected.release, selected.tag)
     )
-    if (manifest.name !== packageName || manifest.version !== selected.version)
-        throw new Error('Tag must match the committed package identity/version')
-    const commit = command('git', [
+        throw new Error('Release identity/channel mismatch')
+    const commit = operations.command('git', [
         'rev-parse',
         '--verify',
         `refs/tags/${selected.tag}^{commit}`,
     ])
     if (
         !/^[a-f0-9]{40}$/.test(commit) ||
-        command('git', ['rev-parse', 'HEAD']) !== commit
+        operations.command('git', ['rev-parse', 'HEAD']) !== commit
     )
         throw new Error('Tag checkout mismatch')
-    command('git', [
+    const manifest = parseJson(
+        operations.command('git', ['show', `${commit}:package.json`]),
+        isPackageIdentity,
+    )
+    if (manifest.name !== operations.packageName())
+        throw new Error('Committed package identity mismatch')
+    operations.command('git', [
         'fetch',
         '--no-tags',
         'origin',
         'main:refs/remotes/origin/main',
     ])
-    command('git', [
+    operations.command('git', [
         'merge-base',
         '--is-ancestor',
         commit,
         'refs/remotes/origin/main',
     ])
-    const remote = command('git', [
-        'ls-remote',
-        'origin',
-        `refs/tags/${selected.tag}`,
-        `refs/tags/${selected.tag}^{}`,
-    ])
+    const remote = operations
+        .command('git', [
+            'ls-remote',
+            'origin',
+            `refs/tags/${selected.tag}`,
+            `refs/tags/${selected.tag}^{}`,
+        ])
         .split('\n')
         .map((line) => line.split(/\s+/))
     const resolved =
         remote.find(([, ref]) => ref?.endsWith('^{}'))?.[0] ??
         remote.find(([, ref]) => ref === `refs/tags/${selected.tag}`)?.[0]
     if (resolved !== commit) throw new Error('Published tag moved')
-    return { ...selected, commit }
+    return { ...selected, commit, manifest: { ...manifest } }
+}
+
+export function preparedManifest(source: VerifiedSourceRelease) {
+    return { ...source.manifest, version: source.version }
+}
+
+export function verifyPreparedCheckout(
+    operations: ReleaseCheckoutOperations = checkoutOperations,
+): VerifiedSourceRelease {
+    const source = verifySourceCheckout(operations)
+    const manifest = parseJson(operations.readManifest(), isPackageIdentity)
+    if (!isDeepStrictEqual(manifest, preparedManifest(source)))
+        throw new Error(
+            'Prepared manifest must change only the release version',
+        )
+    return source
 }
 
 if (isMain(import.meta.url)) {
-    const selected = process.argv.includes('--checkout')
-        ? verifyCheckout()
-        : selectedRelease()
+    // Older release workflows also load trusted automation from main.
+    const sourceCheckout =
+        process.argv.includes('--source-checkout') ||
+        process.argv.includes('--checkout')
+    const selected = sourceCheckout ? verifySourceCheckout() : selectedRelease()
     output('tag', selected.tag)
     output('version', selected.version)
 }

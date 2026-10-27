@@ -148,13 +148,28 @@ test('rejects malformed release events and banner metadata before publication', 
 test('rejects malformed npm pack inventories before artifact inspection', () => {
     expect(
         isPackedArtifacts([
-            { filename: 'calendar.tgz', files: [{ path: 'dist/index.js' }] },
+            {
+                name: '@rentnerkev/calendar',
+                version: '2.0.7',
+                filename: 'calendar.tgz',
+                files: [{ path: 'dist/index.js' }],
+            },
         ]),
     ).toBe(true)
     for (const value of [
         null,
         {},
         [{}],
+        [{ filename: 'a.tgz', files: [] }],
+        [{ name: 3, version: '2.0.7', filename: 'a.tgz', files: [] }],
+        [
+            {
+                name: '@rentnerkev/calendar',
+                version: 3,
+                filename: 'a.tgz',
+                files: [],
+            },
+        ],
         [{ filename: 'a.tgz', files: [null] }],
         [{ filename: 3, files: [] }],
     ])

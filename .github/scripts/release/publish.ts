@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto'
 import { readRegularFile } from '../lib/regularFile.ts'
 import { resolve, basename } from 'node:path'
 import { command, isMain, parseJson } from '../lib/runtime.ts'
-import { verifyCheckout } from './identity.ts'
+import { verifyPreparedCheckout } from './identity.ts'
+import type { PackageIdentity, PackedArtifact } from './Types/release.types.ts'
 import {
     assertArtifactIdentity,
     assertChannelProgression,
@@ -13,15 +14,14 @@ import {
     verifyPublication,
 } from './registry.ts'
 
-if (isMain(import.meta.url)) {
-    const identity = verifyCheckout()
-    const { packageName } = repositoryPolicy()
-    const packs = parseJson(
-        command('npm', ['pack', '--json', '--ignore-scripts']),
-        isPackedArtifacts,
-    )
+export function checkedPackedArtifact(
+    packs: PackedArtifact[],
+    expected: PackageIdentity,
+): PackedArtifact {
     if (
         packs.length !== 1 ||
+        packs[0].name !== expected.name ||
+        packs[0].version !== expected.version ||
         basename(packs[0].filename) !== packs[0].filename ||
         !packs[0].filename.endsWith('.tgz')
     )
@@ -32,12 +32,25 @@ if (isMain(import.meta.url)) {
         )
     )
         throw new Error('Package contains private source/test files')
-    const tarball = resolve(packs[0].filename)
+    return packs[0]
+}
+
+if (isMain(import.meta.url)) {
+    const identity = verifyPreparedCheckout()
+    const { packageName } = repositoryPolicy()
+    const pack = checkedPackedArtifact(
+        parseJson(
+            command('npm', ['pack', '--json', '--ignore-scripts']),
+            isPackedArtifacts,
+        ),
+        { name: packageName, version: identity.version },
+    )
+    const tarball = resolve(pack.filename)
     const integrity = `sha512-${createHash('sha512').update(readRegularFile(tarball)).digest('base64')}`
     const expected = { name: packageName, version: identity.version, integrity }
     const existing = await lookupPackage(packageName, identity.version)
     if (existing) assertArtifactIdentity(existing, expected)
-    const fresh = verifyCheckout()
+    const fresh = verifyPreparedCheckout()
     if (
         fresh.commit !== identity.commit ||
         fresh.release.id !== identity.release.id

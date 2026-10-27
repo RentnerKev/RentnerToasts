@@ -24,12 +24,29 @@ export interface VerifiedRelease extends SelectedRelease {
     commit: string
 }
 
+export interface VerifiedSourceRelease extends VerifiedRelease {
+    manifest: PackageIdentity & Record<string, unknown>
+}
+
+export interface ReleaseCheckoutOperations {
+    select: () => SelectedRelease
+    packageName: () => string
+    command: (program: string, args: readonly string[]) => string
+    readManifest: () => string
+}
+
+export interface ReleasePreparationOperations extends ReleaseCheckoutOperations {
+    writeManifest: (text: string) => void
+}
+
 export interface PackageIdentity {
     name: string
     version: string
 }
 
 export interface PackedArtifact {
+    name: string
+    version: string
     filename: string
     files: { path: string }[]
 }

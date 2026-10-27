@@ -54,6 +54,8 @@ export function isPackedArtifacts(value: unknown): value is PackedArtifact[] {
         value.every(
             (artifact: unknown) =>
                 isRecord(artifact) &&
+                typeof artifact.name === 'string' &&
+                typeof artifact.version === 'string' &&
                 typeof artifact.filename === 'string' &&
                 Array.isArray(artifact.files) &&
                 artifact.files.every(

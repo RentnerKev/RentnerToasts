@@ -45,11 +45,16 @@ jobs:
                   path: source
                   fetch-depth: 0
                   persist-credentials: false
-            - name: Verify committed version and main ancestry
+            - name: Verify release source and main ancestry
               working-directory: source
               env:
                   GH_TOKEN: ${{ github.token }}
-              run: bun "$GITHUB_WORKSPACE/automation/.github/scripts/release/identity.ts" --checkout
+              run: bun "$GITHUB_WORKSPACE/automation/.github/scripts/release/identity.ts" --source-checkout
+            - name: Prepare tag-derived package version
+              working-directory: source
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: bun "$GITHUB_WORKSPACE/automation/.github/scripts/release/prepare.ts"
             - name: Set up Node and npm trusted publishing
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
               with:

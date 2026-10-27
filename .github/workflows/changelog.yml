@@ -34,11 +34,11 @@ jobs:
                   path: source
                   fetch-depth: 0
                   persist-credentials: false
-            - name: Verify committed version and main ancestry
+            - name: Verify release source and main ancestry
               working-directory: source
               env:
                   GH_TOKEN: ${{ github.token }}
-              run: bun "$GITHUB_WORKSPACE/automation/.github/scripts/release/identity.ts" --checkout
+              run: bun "$GITHUB_WORKSPACE/automation/.github/scripts/release/identity.ts" --source-checkout
             - name: Generate commit-based changelog
               uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
               with:

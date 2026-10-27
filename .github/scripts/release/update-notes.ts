@@ -2,12 +2,12 @@ import { createHash } from 'node:crypto'
 import { copyFileSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { api, command, isMain, requiredEnv } from '../lib/runtime.ts'
-import { verifyCheckout, validRelease } from './identity.ts'
+import { verifySourceCheckout, validRelease } from './identity.ts'
 import { readNotes, releaseBody } from './notes.ts'
 import { isReleaseMetadata } from './releaseValidation.ts'
 
 if (isMain(import.meta.url)) {
-    const selected = verifyCheckout()
+    const selected = verifySourceCheckout()
     const notes = readNotes(requiredEnv('NOTES_PATH'))
     const banner = resolve(
         '.github/assets/release-banners/new-release-banner.png',
@@ -44,7 +44,7 @@ if (isMain(import.meta.url)) {
             selected.repository,
         ])
     }
-    const fresh = verifyCheckout()
+    const fresh = verifySourceCheckout()
     if (
         fresh.release.id !== selected.release.id ||
         fresh.commit !== selected.commit
