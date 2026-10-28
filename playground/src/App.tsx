@@ -21,7 +21,11 @@ export function App() {
                     {state.darkMode ? 'Light mode' : 'Dark mode'}
                 </button>
             </div>
-            <ToastProvider className="w-100" position="bottom-left">
+            <ToastProvider
+                className="w-100"
+                position="bottom-left"
+                pauseWhenQueued={false}
+            >
                 <ToastActions handler={handler} />
             </ToastProvider>
             <DesignExamples />
