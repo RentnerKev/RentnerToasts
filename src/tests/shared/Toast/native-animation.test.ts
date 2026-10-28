@@ -67,6 +67,49 @@ test('drag recovery starts at the rendered displacement and scale', () => {
     )
 })
 
+function readSnapBackFrame(frame: Keyframe) {
+    const transform = String(frame.transform)
+    return {
+        x: Number.parseFloat(transform.slice('translate3d('.length)),
+        scale: Number.parseFloat(transform.split('scale(')[1]!),
+    }
+}
+
+test('drag displacement returns monotonically while scale retains its own spring', () => {
+    for (const sign of [-1, 1]) {
+        const frames = getToastSnapBackFrames(sign * 72)
+        let prior = 72
+        for (const frame of frames) {
+            const { x } = readSnapBackFrame(frame)
+            expect(x * sign).toBeGreaterThanOrEqual(0)
+            expect(x * sign).toBeLessThanOrEqual(prior)
+            prior = x * sign
+        }
+        const middle = frames[54]!
+        const { x, scale } = readSnapBackFrame(middle)
+        expect(Math.abs(x)).toBeGreaterThan(5)
+        expect(scale).toBeLessThan(1)
+        expect(scale).toBeCloseTo(1 + 0.02 * (1 - getSpringProgress(0.45)), 10)
+    }
+})
+
+test('drag recovery incorporates initial horizontal velocity and mirrors direction', () => {
+    const stationary = getToastSnapBackFrames(30, 1)
+    const outward = getToastSnapBackFrames(30, 1, 300)
+    const inward = getToastSnapBackFrames(30, 1, -300)
+    const mirrored = getToastSnapBackFrames(-30, 1, -300)
+    expect(readSnapBackFrame(outward[1]!).x).toBeGreaterThan(30)
+    expect(readSnapBackFrame(inward[1]!).x).toBeLessThan(
+        readSnapBackFrame(stationary[1]!).x,
+    )
+    for (let index = 0; index < outward.length; index++) {
+        const value = readSnapBackFrame(outward[index]!)
+        expect(readSnapBackFrame(mirrored[index]!).x).toBeCloseTo(-value.x, 10)
+        expect(value.scale).toBe(1)
+    }
+    expect(outward.at(-1)!.transform).toBe('translate3d(0px, 0, 0) scale(1)')
+})
+
 test('close rotation keeps its stronger spring and returns precisely to rest', () => {
     expect(CLOSE_ICON_SPRING_DURATION).toBe(TOAST_SPRING_DURATION)
     const hover = getCloseIconFrames(0, 90)

@@ -52,6 +52,17 @@ export function useToastMotion({
         element.style.transform = 'none'
         element.style.opacity = '1'
         element.style.touchAction = reducedMotion ? '' : 'pan-y'
+        // Text selection can start a native drag before Firefox delivers the
+        // next pointer move. Match the draggable surface's selection policy.
+        element.style.userSelect = reducedMotion ? '' : 'none'
+        element.style.setProperty(
+            '-webkit-user-select',
+            reducedMotion ? '' : 'none',
+        )
+        element.style.setProperty(
+            '-webkit-touch-callout',
+            reducedMotion ? '' : 'none',
+        )
 
         if (reducedMotion || typeof element.animate !== 'function') {
             if (!present) complete.current?.()

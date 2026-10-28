@@ -112,7 +112,7 @@ export function useToastSwipe({
         const element = event.currentTarget
         releaseCapture(element, event.pointerId)
         element.style.cursor = ''
-        element.style.userSelect = ''
+        element.style.userSelect = enabled ? 'none' : ''
         if (!gesture.dragging) return
         const offset = gesture.originX + gesture.offset * 0.7
         element.style.transform = `translateX(${offset}px) scale(1.02)`
@@ -134,10 +134,13 @@ export function useToastSwipe({
         }
         element.style.transform = 'none'
         if (typeof element.animate !== 'function') return
-        const animation = element.animate(getToastSnapBackFrames(offset), {
-            duration: TOAST_SPRING_DURATION,
-            easing: 'linear',
-        })
+        const animation = element.animate(
+            getToastSnapBackFrames(offset, 1.02, cancelled ? 0 : velocity),
+            {
+                duration: TOAST_SPRING_DURATION,
+                easing: 'linear',
+            },
+        )
         snapBack.current = animation
         animation.onfinish = () => {
             animation.cancel()

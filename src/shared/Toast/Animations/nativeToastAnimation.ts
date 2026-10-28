@@ -83,10 +83,32 @@ export function getToastEnterFrames(position: ToastPosition): Keyframe[] {
     return frames
 }
 
-export function getToastSnapBackFrames(x: number, scale = 1.02): Keyframe[] {
-    return createSpringFrames(0, 1, 200, 24, (progress) => {
-        const remaining = 1 - progress
-        return `translate3d(${x * remaining}px, 0, 0) scale(${1 + (scale - 1) * remaining})`
+export function getToastSnapBackFrames(
+    x: number,
+    scale = 1.02,
+    velocity = 0,
+): Keyframe[] {
+    // Drag constraints use Motion's overdamped bounce spring, whereas scale
+    // returns through the toast's own 200/24 transition.
+    const samples = 96
+    const frequency = Math.sqrt(200)
+    const slow = -20 + frequency
+    const fast = -20 - frequency
+    return Array.from({ length: samples + 1 }, (_, index) => {
+        const offset = index / samples
+        const seconds = (offset * TOAST_SPRING_DURATION) / 1000
+        const atRest = index === samples
+        const displacement = atRest
+            ? 0
+            : x * (1 - getSpringProgress(seconds, 200, 40)) +
+              (velocity *
+                  (Math.exp(slow * seconds) - Math.exp(fast * seconds))) /
+                  (slow - fast)
+        const remainingScale = atRest ? 0 : 1 - getSpringProgress(seconds)
+        return {
+            offset,
+            transform: `translate3d(${displacement}px, 0, 0) scale(${1 + (scale - 1) * remainingScale})`,
+        }
     })
 }
 

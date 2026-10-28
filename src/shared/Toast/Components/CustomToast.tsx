@@ -41,6 +41,7 @@ export function CustomToast({
             ref={setWrapperRef}
             data-toast-id={toast.id}
             data-toast-state={present ? 'present' : 'exiting'}
+            draggable={state.dragEnabled ? false : undefined}
             onPointerDown={handler.handlePointerDown}
             onPointerMove={handler.handlePointerMove}
             onPointerUp={handler.handlePointerUp}

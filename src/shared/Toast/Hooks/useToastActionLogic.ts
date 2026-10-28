@@ -22,7 +22,7 @@ export function useToastActionLogic(animated: boolean) {
             createSpringFrames(
                 current,
                 scale,
-                500,
+                550,
                 30,
                 (value) => `scale(${value})`,
             ),
