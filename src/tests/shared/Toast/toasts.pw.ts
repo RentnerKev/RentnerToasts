@@ -105,6 +105,48 @@ test.describe('toast playground', () => {
         await expect(linkedToast).toBeHidden()
     })
 
+    test('loads the standard rounded design and a visible decreasing progress bar', async ({
+        page,
+    }) => {
+        await page.getByTestId('show-link-toast').click()
+        const toast = page.getByRole('status')
+        const progress = toast.getByTestId('toast-progress')
+        await expect(toast).toHaveCSS('border-radius', '12px')
+        await expect(progress).toHaveCSS('height', '4px')
+        await expect(progress).toHaveCSS(
+            'background-color',
+            'rgb(96, 165, 250)',
+        )
+        const initialScale = await progress.evaluate(
+            (element) => new DOMMatrix(getComputedStyle(element).transform).a,
+        )
+        expect(initialScale).toBeGreaterThan(0.5)
+        await expect
+            .poll(() =>
+                progress.evaluate(
+                    (element) =>
+                        new DOMMatrix(getComputedStyle(element).transform).a,
+                ),
+            )
+            .toBeLessThan(initialScale - 0.05)
+    })
+
+    test('expires hidden queued playground toasts without showing them again', async ({
+        page,
+    }) => {
+        await page.clock.install()
+        await page.getByTestId('show-toasts').click()
+        await page.clock.fastForward(1000)
+        await page.getByTestId('show-link-toast').click()
+        const oldest = page.getByRole('status').filter({
+            hasText: 'Alles gut gelaufen',
+        })
+        await expect(oldest).toBeHidden()
+        await page.clock.fastForward(6500)
+        await expect(page.getByRole('status')).toHaveCount(0)
+        await expect(page.getByRole('alert')).toHaveCount(0)
+    })
+
     test('honors reduced motion for toast transforms and progress', async ({
         page,
     }) => {
