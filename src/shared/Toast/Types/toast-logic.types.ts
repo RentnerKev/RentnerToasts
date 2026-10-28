@@ -1,7 +1,14 @@
 import type { ToastTextToken } from '../../../lib/ToastText/Types/toast-text.types.ts'
 import type { ToastType } from '../../../lib/ToastStore/Types/toast.types.ts'
 import type { ToastCustomDesign } from './toast-ui.types.ts'
-import type { Ref, RefCallback } from 'react'
+import type {
+    Ref,
+    RefCallback,
+    RefObject,
+    PointerEventHandler,
+    MouseEventHandler,
+} from 'react'
+import type { ToastPresenceItem } from './toast-animation.types.ts'
 import type { ToastMessages } from '../../../lib/Messages/Types/messages.types.ts'
 import type {
     Toast,
@@ -23,7 +30,6 @@ export interface ToastStoreContextValue {
 
 export interface ToastProviderLogicResult {
     state: {
-        hasToasts: boolean
         storeContext: ToastStoreContextValue
         surfaceProps: ToastProps
     }
@@ -42,12 +48,19 @@ export interface ToastSurfaceResult {
         positionClasses: string
         anchorX: 'left' | 'right'
         anchorY: 'top' | 'bottom'
+        items: ToastPresenceItem[]
     }
-    handler: { handleRemoveToast: (id: ToastId) => void }
+    handler: {
+        handleRemoveToast: (id: ToastId) => void
+        handleExitComplete: (id: string) => void
+    }
+    refs: { region: RefCallback<HTMLElement> }
 }
 
 export type CustomToastComponentProps = CustomToastProps & {
     ref?: Ref<HTMLDivElement>
+    present?: boolean
+    onExitComplete?: () => void
 }
 
 export interface CustomToastLogicResult {
@@ -59,8 +72,18 @@ export interface CustomToastLogicResult {
         parsedContent: ToastTextToken[]
         linkClassName: string
     }
-    handler: UseCustomToastLogicResult['handler']
-    refs: { setWrapperRef: RefCallback<HTMLDivElement> }
+    handler: UseCustomToastLogicResult['handler'] & {
+        handlePointerDown: PointerEventHandler<HTMLDivElement>
+        handlePointerMove: PointerEventHandler<HTMLDivElement>
+        handlePointerUp: PointerEventHandler<HTMLDivElement>
+        handlePointerCancel: PointerEventHandler<HTMLDivElement>
+        handleLostPointerCapture: PointerEventHandler<HTMLDivElement>
+        handleClickCapture: MouseEventHandler<HTMLDivElement>
+    }
+    refs: {
+        setWrapperRef: RefCallback<HTMLDivElement>
+        progress: RefObject<HTMLDivElement | null>
+    }
 }
 
 export interface ToastTextProps {

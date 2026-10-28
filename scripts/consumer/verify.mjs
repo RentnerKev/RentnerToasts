@@ -25,6 +25,25 @@ const manifest = JSON.parse(
 const playground = JSON.parse(
     readFileSync(join(packageRoot, 'playground/package.json'), 'utf8'),
 )
+const motionPackages = ['motion', 'framer-motion', 'motion-dom', 'motion-utils']
+
+function checkNativeDependencies(packageManifest) {
+    for (const field of [
+        'dependencies',
+        'devDependencies',
+        'peerDependencies',
+        'optionalDependencies',
+    ]) {
+        for (const name of motionPackages) {
+            assert.ok(
+                !Object.hasOwn(packageManifest[field] ?? {}, name),
+                `Native toast animations must not declare ${name} in ${field}`,
+            )
+        }
+    }
+}
+
+checkNativeDependencies(manifest)
 function playgroundDependency(name) {
     const version =
         playground.devDependencies?.[name] ?? playground.dependencies?.[name]
@@ -91,9 +110,6 @@ try {
     )) {
         dependencies[name] ??= manifest.devDependencies?.[name] ?? range
     }
-    if (process.env.CONSUMER_MOTION_VERSION) {
-        dependencies.motion = process.env.CONSUMER_MOTION_VERSION
-    }
     writeFileSync(
         join(consumerRoot, 'package.json'),
         JSON.stringify({
@@ -120,6 +136,22 @@ try {
         'node_modules',
         ...manifest.name.split('/'),
     )
+    checkNativeDependencies(
+        JSON.parse(
+            readFileSync(join(installedPackage, 'package.json'), 'utf8'),
+        ),
+    )
+    const installedLock = JSON.parse(
+        readFileSync(join(consumerRoot, 'package-lock.json'), 'utf8'),
+    )
+    for (const path of Object.keys(installedLock.packages)) {
+        for (const name of motionPackages) {
+            assert.ok(
+                !path.endsWith(`node_modules/${name}`),
+                `Packed consumer must not install ${name}`,
+            )
+        }
+    }
     const maps = sourceMaps(join(installedPackage, 'dist'))
     assert.ok(maps.length > 0, 'Published JavaScript must have source maps')
     for (const path of maps) {
@@ -389,7 +421,7 @@ try {
             expect(errors).toEqual([])
             await checkProviderCompatibility({ browser, url, expect })
             console.log(
-                `Packed consumer ${name} passed: ${manifest.name}@${manifest.version} (React ${dependencies.react}, Motion ${dependencies.motion}; sync + compatible provider, 8 first-paint designs)`,
+                `Packed consumer ${name} passed: ${manifest.name}@${manifest.version} (React ${dependencies.react}, native animations without Motion dependencies; sync + compatible provider, 8 first-paint designs)`,
             )
         } finally {
             await browser.close()

@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useToastSnapshot } from './useToastSnapshot.ts'
 import { defaultToastStore } from '../../../lib/ToastStore/toastApi.ts'
 import { registerToastProviderDefaults } from '../../../lib/ToastStore/toastStore.ts'
 import type { ToastStore } from '../../../lib/ToastStore/Types/toast.types.ts'
@@ -54,12 +53,10 @@ export function useToastProviderLogic({
         }
     }, [store])
 
-    const { state } = useToastSnapshot(store)
     const storeContext = useMemo(() => ({ store, toast: store.toast }), [store])
 
     return {
         state: {
-            hasToasts: state.toasts.length > 0,
             storeContext,
             surfaceProps: {
                 customDesign,
