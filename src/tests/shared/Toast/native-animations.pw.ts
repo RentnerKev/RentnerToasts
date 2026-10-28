@@ -44,15 +44,76 @@ async function settled(toast: Locator) {
         .toBeLessThan(0.5)
 }
 
-async function drag(page: Page, toast: Locator, distance: number, slow = true) {
+async function drag(page: Page, toast: Locator, distance: number) {
     const bounds = await toast.boundingBox()
     expect(bounds).not.toBeNull()
     const x = bounds!.x + bounds!.width / 2
     const y = bounds!.y + bounds!.height / 2
     await page.mouse.move(x, y)
     await page.mouse.down()
-    await page.mouse.move(x + distance, y, { steps: slow ? 12 : 1 })
-    if (slow) await page.waitForTimeout(150)
+    await page.mouse.move(x + distance, y, { steps: 12 })
+    await page.waitForTimeout(150)
+    await page.mouse.up()
+    await page.mouse.move(0, 0)
+}
+
+async function timedSwipe(
+    page: Page,
+    toast: Locator,
+    movementMs: number,
+    releaseMs = movementMs,
+) {
+    const bounds = (await toast.boundingBox())!
+    const x = bounds.x + bounds.width / 2
+    const y = bounds.y + bounds.height / 2
+    await toast.evaluate((element) => {
+        element.addEventListener(
+            'pointerdown',
+            (event) => {
+                // Keep a real active pointer for setPointerCapture, while the gesture
+                // clock stays independent of browser/CI scheduling delays.
+                Object.defineProperty(event, 'timeStamp', { value: 1000 })
+                element.setAttribute(
+                    'data-test-pointer-id',
+                    String(event.pointerId),
+                )
+            },
+            { once: true, capture: true },
+        )
+    })
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await toast.evaluate(
+        (element, timing) => {
+            const recordedPointerId = element.getAttribute(
+                'data-test-pointer-id',
+            )
+            element.removeAttribute('data-test-pointer-id')
+            const pointerId = Number(recordedPointerId)
+            if (recordedPointerId === null || !Number.isFinite(pointerId))
+                throw new Error('Real pointerdown was not captured')
+            function dispatch(type: string, clientX: number, time: number) {
+                const event = new PointerEvent(type, {
+                    pointerId,
+                    pointerType: 'mouse',
+                    isPrimary: true,
+                    button: 0,
+                    buttons: type === 'pointerup' ? 0 : 1,
+                    clientX,
+                    clientY: timing.y,
+                    bubbles: true,
+                })
+                Object.defineProperty(event, 'timeStamp', {
+                    value: 1000 + time,
+                })
+                element.dispatchEvent(event)
+            }
+            dispatch('pointermove', timing.x - 5, 10)
+            dispatch('pointermove', timing.x - 65, timing.movementMs)
+            dispatch('pointerup', timing.x - 65, timing.releaseMs)
+        },
+        { x, y, movementMs, releaseMs },
+    )
     await page.mouse.up()
     await page.mouse.move(0, 0)
 }
@@ -204,8 +265,30 @@ test('dismisses a fast swipe below the distance threshold', async ({
     await page.getByRole('button', { name: 'First', exact: true }).click()
     const toast = page.getByRole('status')
     await settled(toast)
-    await drag(page, toast, -65, false)
+    await timedSwipe(page, toast, 50)
     await expect(toast).toHaveCount(0)
+})
+
+test('keeps a slow swipe below both dismissal thresholds', async ({ page }) => {
+    await openFixture(page)
+    await page.getByRole('button', { name: 'First', exact: true }).click()
+    const toast = page.getByRole('status')
+    await settled(toast)
+    await timedSwipe(page, toast, 500)
+    await settled(toast)
+    await expect(toast).toBeVisible()
+})
+
+test('forgets swipe velocity after the pointer rests before release', async ({
+    page,
+}) => {
+    await openFixture(page)
+    await page.getByRole('button', { name: 'First', exact: true }).click()
+    const toast = page.getByRole('status')
+    await settled(toast)
+    await timedSwipe(page, toast, 50, 500)
+    await settled(toast)
+    await expect(toast).toBeVisible()
 })
 
 test('continues smoothly when a swipe interrupts its snap-back', async ({

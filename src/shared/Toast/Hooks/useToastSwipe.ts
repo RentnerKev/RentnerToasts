@@ -12,7 +12,23 @@ import {
 import type {
     ToastSwipeProps,
     ToastSwipeSession,
+    ToastPointerSample,
 } from '../Types/toast-animation.types.ts'
+
+export function getToastSwipeVelocity(
+    samples: readonly ToastPointerSample[],
+    x: number,
+    time: number,
+) {
+    // Keep the sample just before the velocity window as its anchor. Dropping
+    // it makes a single fast move look stationary when its release is nearby.
+    let index = 0
+    while (index + 1 < samples.length && samples[index + 1]!.time < time - 100)
+        index += 1
+    const sample = samples[index]
+    if (!sample || time <= sample.time) return 0
+    return ((x - sample.x) * 1000) / (time - sample.time)
+}
 
 function releaseCapture(element: HTMLElement, pointerId: number) {
     if (element.hasPointerCapture(pointerId))
@@ -117,13 +133,11 @@ export function useToastSwipe({
         const offset = gesture.originX + gesture.offset * 0.7
         element.style.transform = `translateX(${offset}px) scale(1.02)`
         suppressClick.current = !cancelled
-        const sample =
-            gesture.samples.find(
-                (item) => item.time >= event.timeStamp - 100,
-            ) ?? gesture.samples.at(-1)!
-        const elapsed = event.timeStamp - sample.time
-        const velocity =
-            elapsed > 0 ? ((event.clientX - sample.x) * 1000) / elapsed : 0
+        const velocity = getToastSwipeVelocity(
+            gesture.samples,
+            event.clientX,
+            event.timeStamp,
+        )
         if (
             !cancelled &&
             enabled &&
