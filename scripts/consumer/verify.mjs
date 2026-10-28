@@ -20,6 +20,8 @@ import {
     check,
     checkProviderCompatibility,
     checkNativeBranches,
+    checkOptimizationProbes,
+    checkPresentationMutations,
 } from './checks.mjs'
 
 const packageRoot = process.cwd()
@@ -387,6 +389,8 @@ try {
                 await page.evaluate(() => window.consumerHydrationErrors),
             ).toEqual([])
             expect(errors).toEqual([])
+            await checkOptimizationProbes({ page, url, expect })
+            await checkPresentationMutations({ page, url, expect })
             await checkNativeBranches({ page, expect })
             await check({ page, expect })
             const accessibility = await new AxeBuilder({ page }).analyze()

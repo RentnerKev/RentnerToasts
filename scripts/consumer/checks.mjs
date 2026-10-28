@@ -401,3 +401,121 @@ export async function checkNativeBranches({ page, expect }) {
     await expect(scoped).toHaveCount(0)
     await page.reload()
 }
+
+export async function checkOptimizationProbes({ page, url, expect }) {
+    await page.goto(`${url}/?optimization-probe`)
+    const probe = page.getByTestId('optimization-probe')
+    await expect(probe.getByRole('status')).toHaveCount(10)
+    await page.evaluate(() => window.toastOptimizationProbe.resetMetrics())
+    await page.evaluate(() =>
+        window.toastOptimizationProbe.update(0, 'Changed probe'),
+    )
+    await expect(
+        probe.getByRole('status').filter({ hasText: 'Changed probe' }),
+    ).toBeVisible()
+    expect(
+        await page.evaluate(() => window.toastOptimizationProbe.readMetrics()),
+    ).toMatchObject({ defaultsReads: 1, contentReads: 4, neighborReads: 0 })
+    await page.evaluate(() => {
+        window.toastOptimizationProbe.resetMetrics()
+        for (let index = 0; index < 20; index++)
+            window.toastOptimizationProbe.update(0, `Loop probe ${index}`)
+    })
+    expect(
+        await page.evaluate(() => window.toastOptimizationProbe.readMetrics()),
+    ).toMatchObject({ defaultsReads: 20, contentReads: 80, neighborReads: 0 })
+    await expect(
+        probe.getByRole('status').filter({ hasText: /^Probe 1$/ }),
+    ).toBeVisible()
+    await page.evaluate(() =>
+        window.toastOptimizationProbe.replacePresentation(),
+    )
+    await expect(probe).toHaveAttribute('data-version', '1')
+    await expect(probe.getByRole('status').first()).toHaveClass(/bg-red-950/)
+    await expect(
+        probe.getByRole('button', { name: 'Dismiss updated probe' }),
+    ).toHaveCount(10)
+    await probe
+        .getByRole('button', { name: 'Dismiss updated probe' })
+        .first()
+        .click()
+    await expect(probe.getByRole('status')).toHaveCount(9)
+    expect(
+        await page.evaluate(() => window.toastOptimizationProbe.readMetrics()),
+    ).toMatchObject({ removalVersion: 1 })
+    await page.goto(url)
+}
+
+export async function checkPresentationMutations({ page, url, expect }) {
+    await page.goto(`${url}/?presentation-mutations`)
+    const probe = page.getByTestId('presentation-probe')
+    await expect(probe.getByRole('status')).toHaveCount(2)
+    await page.evaluate(() => window.toastPresentationProbe.mutate('messages'))
+    await expect(
+        probe.getByRole('region', { name: 'After region' }),
+    ).toBeVisible()
+    await expect(
+        probe.getByRole('button', { name: 'After dismiss' }),
+    ).toHaveCount(3)
+    await expect(
+        probe.getByRole('button', { name: 'After copy' }),
+    ).toBeVisible()
+    await page.evaluate(() => {
+        window.toastPresentationProbe.mutate('design')
+        window.toastPresentationProbe.mutate('slots')
+    })
+    const survivor = probe
+        .getByRole('status')
+        .filter({ hasText: 'Mutable survivor' })
+    await expect(survivor).toHaveClass(/after-inherited-wrapper/)
+    await expect(survivor.getByText('Survivor', { exact: true })).toHaveClass(
+        /after-title/,
+    )
+    await expect(
+        survivor.getByText('Mutable survivor', { exact: true }),
+    ).toHaveClass(/after-inherited-content/)
+    await expect(survivor.locator('[data-toast-close] svg')).toHaveClass(
+        /after-close-icon/,
+    )
+    await page.evaluate(() => window.toastPresentationProbe.mutate('empty'))
+    await expect(survivor).not.toHaveClass(
+        /after-inherited-wrapper|flex items-start/,
+    )
+    await expect(survivor.getByText('Survivor', { exact: true })).toHaveClass(
+        /^wrap-break-word text-sm font-semibold tracking-tight\s*$/,
+    )
+    await expect(
+        survivor.getByText('Mutable survivor', { exact: true }),
+    ).not.toHaveClass(/after-inherited-content|text-sm/)
+    await expect(survivor.locator('[data-toast-close]')).toHaveAttribute(
+        'aria-label',
+        '',
+    )
+    await expect(survivor.locator('[data-toast-close] svg')).not.toHaveClass(
+        /after-close-icon|text-gray-400/,
+    )
+
+    await page.reload()
+    await expect(probe.getByRole('status')).toHaveCount(2)
+    await page.evaluate(() => {
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: async () => {} },
+        })
+        window.toastPresentationProbe.mutate('getters')
+        window.toastPresentationProbe.mutate('design')
+    })
+    await expect(survivor).toHaveClass(/after-inherited-wrapper/)
+    const error = probe.getByRole('alert')
+    await page.evaluate(() =>
+        window.toastPresentationProbe.mutate('slots', false),
+    )
+    await error.getByRole('button', { name: 'Before copy' }).click()
+    await expect(
+        error.getByRole('button', { name: 'Before copied' }),
+    ).toBeVisible()
+    await expect(
+        error.getByText('Error survivor', { exact: true }),
+    ).toHaveClass(/after-inherited-content/)
+    await page.goto(url)
+}

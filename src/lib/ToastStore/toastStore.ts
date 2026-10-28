@@ -418,14 +418,24 @@ export function createToastStoreCore(
                   toastDefaults.duration,
               )
             : currentToast.duration
+        const content = updateOptions.content ?? currentToast.content
+        const title =
+            updateOptions.title === null
+                ? undefined
+                : (updateOptions.title ?? currentToast.title)
+        const type = updateOptions.type ?? currentToast.type
+        if (
+            !resetsDuration &&
+            content === currentToast.content &&
+            title === currentToast.title &&
+            type === currentToast.type
+        )
+            return true
         const nextToast: Toast = Object.freeze({
             ...currentToast,
-            content: updateOptions.content ?? currentToast.content,
-            title:
-                updateOptions.title === null
-                    ? undefined
-                    : (updateOptions.title ?? currentToast.title),
-            type: updateOptions.type ?? currentToast.type,
+            content,
+            title,
+            type,
             duration,
             createdAt: resetsDuration
                 ? Math.max(Date.now(), currentToast.createdAt + 1)
@@ -436,13 +446,6 @@ export function createToastStoreCore(
                 : currentToast.timerStartedAt,
         })
 
-        if (
-            !resetsDuration &&
-            nextToast.content === currentToast.content &&
-            nextToast.title === currentToast.title &&
-            nextToast.type === currentToast.type
-        )
-            return true
         toastsById.set(id, nextToast)
         snapshot = undefined
 

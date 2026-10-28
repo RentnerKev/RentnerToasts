@@ -1,0 +1,91 @@
+import { useMemo } from 'react'
+import { captureToastPresentation } from '../../../lib/ToastText/toastPresentation.ts'
+import type {
+    ToastClassNames,
+    ToastCustomDesign,
+} from '../Types/toast-ui.types.ts'
+
+export function useToastPresentation(
+    customDesign?: ToastCustomDesign,
+    classNames?: ToastClassNames,
+) {
+    const snapshot = captureToastPresentation(customDesign, classNames)
+    const { design, classNames: slots, hasAccessors } = snapshot
+    const stable = useMemo(
+        () => ({
+            design: {
+                wrapper: design.wrapper,
+                successWrapper: design.successWrapper,
+                errorWrapper: design.errorWrapper,
+                infoWrapper: design.infoWrapper,
+                warningWrapper: design.warningWrapper,
+                successIcon: design.successIcon,
+                errorIcon: design.errorIcon,
+                infoIcon: design.infoIcon,
+                warningIcon: design.warningIcon,
+                successProgress: design.successProgress,
+                errorProgress: design.errorProgress,
+                infoProgress: design.infoProgress,
+                warningProgress: design.warningProgress,
+                titleText: design.titleText,
+                contentText: design.contentText,
+                closeButton: design.closeButton,
+                copyButton: design.copyButton,
+                linkText: design.linkText,
+            },
+            classNames: {
+                region: slots.region,
+                root: slots.root,
+                icon: slots.icon,
+                body: slots.body,
+                title: slots.title,
+                content: slots.content,
+                actions: slots.actions,
+                closeButton: slots.closeButton,
+                closeIcon: slots.closeIcon,
+                copyButton: slots.copyButton,
+                copyIcon: slots.copyIcon,
+                buttonOverlay: slots.buttonOverlay,
+                progress: slots.progress,
+                link: slots.link,
+            },
+            hasAccessors,
+        }),
+        [
+            design.wrapper,
+            design.successWrapper,
+            design.errorWrapper,
+            design.infoWrapper,
+            design.warningWrapper,
+            design.successIcon,
+            design.errorIcon,
+            design.infoIcon,
+            design.warningIcon,
+            design.successProgress,
+            design.errorProgress,
+            design.infoProgress,
+            design.warningProgress,
+            design.titleText,
+            design.contentText,
+            design.closeButton,
+            design.copyButton,
+            design.linkText,
+            slots.region,
+            slots.root,
+            slots.icon,
+            slots.body,
+            slots.title,
+            slots.content,
+            slots.actions,
+            slots.closeButton,
+            slots.closeIcon,
+            slots.copyButton,
+            slots.copyIcon,
+            slots.buttonOverlay,
+            slots.progress,
+            slots.link,
+            hasAccessors,
+        ],
+    )
+    return hasAccessors ? snapshot : stable
+}

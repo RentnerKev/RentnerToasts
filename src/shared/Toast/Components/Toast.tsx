@@ -17,7 +17,13 @@ export function Toast({
     portalZIndex,
 }: ToastProps) {
     const container = useToastPortalContainer(portalContainer)
-    const { state, handler } = useToastSurface({ position, locale, messages })
+    const { state, handler } = useToastSurface({
+        position,
+        locale,
+        messages,
+        customDesign,
+        classNames,
+    })
     if (portalContainer === 'body' && !container) return null
     const surface = (
         <MotionConfig reducedMotion="user">
@@ -55,6 +61,7 @@ export function Toast({
                             classNames={classNames}
                             className={className}
                             messages={state.messages}
+                            presentation={state.presentation}
                         />
                     ))}
                 </AnimatePresence>

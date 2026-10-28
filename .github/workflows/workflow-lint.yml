@@ -1,7 +1,7 @@
 name: Workflow Lint
 on:
     pull_request:
-        branches: [main]
+        branches: [main, refactor/native-focus-scope]
     push:
         branches: [main]
     workflow_dispatch:

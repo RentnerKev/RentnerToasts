@@ -170,3 +170,31 @@ describe('indexed toast queue', () => {
         store.dispose()
     })
 })
+
+test('1000 true no-op updates allocate no frozen toast objects and preserve the snapshot', () => {
+    const store = createToastStore({ defaultDuration: 0 })
+    const id = store.toast.info('Unchanged')
+    const snapshot = store.getToastSnapshot()
+    let notifications = 0
+    store.subscribeToToasts(() => notifications++)
+    const freeze = spyOn(Object, 'freeze')
+    try {
+        for (let index = 0; index < 1000; index++) {
+            if (
+                !store.toast.update(id, {
+                    content: 'Unchanged',
+                    title: null,
+                    type: 'info',
+                })
+            )
+                throw new Error('Existing toast update failed')
+        }
+        expect(freeze).toHaveBeenCalledTimes(0)
+        expect(store.getToastSnapshot()).toBe(snapshot)
+        expect(notifications).toBe(0)
+        expect(store.toast.update('unknown', {})).toBe(false)
+    } finally {
+        freeze.mockRestore()
+        store.dispose()
+    }
+})

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { ToastText } from './ToastText.tsx'
 import { ToastIcon } from './ToastIcon.tsx'
 import { Check, Copy, X } from 'lucide-react'
@@ -9,7 +10,7 @@ import {
 } from '../Animations/toastAnimations.ts'
 import { useCustomToastLogic } from '../Hooks/useCustomToastLogic.ts'
 
-export function CustomToast({
+export const CustomToast = memo(function CustomToast({
     toast,
     position,
     onRemove,
@@ -180,4 +181,4 @@ export function CustomToast({
             )}
         </motion.div>
     )
-}
+})

@@ -1,6 +1,6 @@
 import type { ToastTextToken } from '../../../lib/ToastText/Types/toast-text.types.ts'
 import type { ToastType } from '../../../lib/ToastStore/Types/toast.types.ts'
-import type { ToastCustomDesign } from './toast-ui.types.ts'
+import type { ToastClassNames, ToastCustomDesign } from './toast-ui.types.ts'
 import type { Ref, RefCallback } from 'react'
 import type { ToastMessages } from '../../../lib/Messages/Types/messages.types.ts'
 import type {
@@ -39,6 +39,7 @@ export interface ToastSurfaceResult {
         regionId: string
         visibleToasts: readonly Toast[]
         messages: ToastMessages
+        presentation: ToastPresentationSnapshot
         positionClasses: string
         anchorX: 'left' | 'right'
         anchorY: 'top' | 'bottom'
@@ -48,6 +49,14 @@ export interface ToastSurfaceResult {
 
 export type CustomToastComponentProps = CustomToastProps & {
     ref?: Ref<HTMLDivElement>
+    /** Private memo invalidation; rendering keeps the caller's live slot objects. */
+    presentation?: ToastPresentationSnapshot
+}
+
+export interface ToastPresentationSnapshot {
+    design: ToastCustomDesign
+    classNames: ToastClassNames
+    hasAccessors: boolean
 }
 
 export interface CustomToastLogicResult {
@@ -96,5 +105,5 @@ export interface ToastInteractionResult {
 export type ToastProviderLogicProps = Omit<ToastProviderProps, 'children'>
 export type ToastSurfaceProps = Pick<
     ToastProps,
-    'position' | 'locale' | 'messages'
+    'position' | 'locale' | 'messages' | 'customDesign' | 'classNames'
 >
