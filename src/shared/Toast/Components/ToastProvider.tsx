@@ -9,7 +9,7 @@ export function ToastProvider({ children, ...props }: ToastProviderProps) {
     return (
         <ToastStoreContext.Provider value={state.storeContext}>
             {children}
-            {state.hasToasts && <Toast {...state.surfaceProps} />}
+            <Toast {...state.surfaceProps} />
         </ToastStoreContext.Provider>
     )
 }

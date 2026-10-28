@@ -6,7 +6,7 @@ import type {
     toastDragAnimation,
     toastTransition,
 } from '../Animations/toastAnimations.ts'
-import type { MotionProps } from 'motion/react'
+import type { ToastDragEndHandler } from './toast-animation.types.ts'
 import type {
     ToastLocale,
     ToastMessages,
@@ -95,7 +95,7 @@ export interface UseCustomToastLogicResult {
     }
     handler: {
         handleCopyError: (e: MouseEvent<HTMLButtonElement>) => void
-        handleDragEnd: NonNullable<MotionProps['onDragEnd']>
+        handleDragEnd: ToastDragEndHandler
         handleMouseEnter: () => void
         handleMouseLeave: () => void
         handleFocus: (event: FocusEvent<HTMLDivElement>) => void

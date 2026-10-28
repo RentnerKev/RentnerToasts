@@ -2,11 +2,7 @@ import { ToastText } from './ToastText.tsx'
 import { ToastIcon } from './ToastIcon.tsx'
 import { Check, Copy, X } from 'lucide-react'
 import type { CustomToastComponentProps } from '../Types/toast-logic.types.ts'
-import { motion } from 'motion/react'
-import {
-    closeButtonIconTransition,
-    closeButtonIconVariants,
-} from '../Animations/toastAnimations.ts'
+import { ToastActionButton } from './ToastActionButton.tsx'
 import { useCustomToastLogic } from '../Hooks/useCustomToastLogic.ts'
 
 export function CustomToast({
@@ -18,11 +14,13 @@ export function CustomToast({
     className,
     messages,
     ref,
+    present = true,
+    onExitComplete,
 }: CustomToastComponentProps) {
     const {
         state,
         handler,
-        refs: { setWrapperRef },
+        refs: { setWrapperRef, progress },
     } = useCustomToastLogic(
         {
             toast,
@@ -34,21 +32,22 @@ export function CustomToast({
             messages,
         },
         ref,
+        present,
+        onExitComplete,
     )
 
     return (
-        <motion.div
+        <div
             ref={setWrapperRef}
-            layout="position"
-            initial={state.initialAnimation}
-            animate={state.animate}
-            exit={state.exitAnimation}
-            transition={state.transition}
-            drag={state.dragEnabled ? 'x' : false}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.7}
-            whileDrag={state.dragAnimation}
-            onDragEnd={handler.handleDragEnd}
+            data-toast-id={toast.id}
+            data-toast-state={present ? 'present' : 'exiting'}
+            draggable={state.dragEnabled ? false : undefined}
+            onPointerDown={handler.handlePointerDown}
+            onPointerMove={handler.handlePointerMove}
+            onPointerUp={handler.handlePointerUp}
+            onPointerCancel={handler.handlePointerCancel}
+            onLostPointerCapture={handler.handleLostPointerCapture}
+            onClickCapture={handler.handleClickCapture}
             onMouseEnter={handler.handleMouseEnter}
             onMouseLeave={handler.handleMouseLeave}
             onFocusCapture={handler.handleFocus}
@@ -96,15 +95,10 @@ export function CustomToast({
                 }
             >
                 {toast.type === 'error' && (
-                    <motion.button
+                    <ToastActionButton
+                        animated={state.dragEnabled}
                         type="button"
                         onClick={handler.handleCopyError}
-                        whileHover={
-                            state.dragEnabled ? { scale: 1.15 } : undefined
-                        }
-                        whileTap={
-                            state.dragEnabled ? { scale: 0.85 } : undefined
-                        }
                         aria-label={
                             state.copied
                                 ? messages.errorCopied
@@ -129,14 +123,13 @@ export function CustomToast({
                                 className={`relative z-10 transition-colors duration-300 motion-reduce:transition-none ${classNames?.copyIcon ?? customDesign?.copyButton ?? 'text-gray-400 group-hover:text-white'}`}
                             />
                         )}
-                    </motion.button>
+                    </ToastActionButton>
                 )}
-                <motion.button
+                <ToastActionButton
+                    animated={state.dragEnabled}
                     type="button"
                     data-toast-close=""
                     onClick={() => onRemove(toast.id)}
-                    whileHover={state.dragEnabled ? { scale: 1.15 } : undefined}
-                    whileTap={state.dragEnabled ? { scale: 0.85 } : undefined}
                     aria-label={messages.closeNotification}
                     className={`relative group shrink-0 cursor-pointer touch-manipulation overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent focus-visible:ring-offset-2 ${classNames?.closeButton ?? 'rounded-full p-1.5'}`}
                 >
@@ -144,40 +137,24 @@ export function CustomToast({
                         aria-hidden="true"
                         className={`absolute inset-0 pointer-events-none ${classNames?.buttonOverlay ?? 'rounded-full bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:transition-none'}`}
                     />
-                    <motion.div
-                        transition={closeButtonIconTransition}
-                        variants={closeButtonIconVariants}
-                        initial="idle"
-                        whileHover={state.dragEnabled ? 'hover' : undefined}
-                        className="relative z-10"
-                    >
+                    <div data-toast-close-icon="" className="relative z-10">
                         <X
                             size={14}
                             aria-hidden="true"
                             className={`transition-colors duration-300 motion-reduce:transition-none ${classNames?.closeIcon ?? customDesign?.closeButton ?? 'text-gray-400 group-hover:text-white'}`}
                         />
-                    </motion.div>
-                </motion.button>
+                    </div>
+                </ToastActionButton>
             </div>
 
             {toast.duration > 0 && (
-                <motion.div
-                    key={`${toast.id}-${toast.createdAt}`}
-                    initial={{ scaleX: state.startingScale }}
-                    animate={{
-                        scaleX: state.isTimerRunning ? 0 : state.startingScale,
-                    }}
-                    transition={{
-                        duration: state.isTimerRunning
-                            ? state.progressDuration
-                            : 0,
-                        ease: 'linear',
-                    }}
+                <div
+                    ref={progress}
                     aria-hidden="true"
                     data-testid="toast-progress"
                     className={`absolute bottom-0 left-0 w-full origin-left ${state.progressClasses}`}
                 />
             )}
-        </motion.div>
+        </div>
     )
 }

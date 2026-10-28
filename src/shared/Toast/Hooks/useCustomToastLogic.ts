@@ -1,8 +1,7 @@
 import { hasTailwindUtility } from '../../../lib/ToastText/tailwindUtility.ts'
 import { parseToastText } from '../../../lib/ToastText/toastText.ts'
 import { useToastInteraction } from './useToastInteraction.ts'
-import { useMemo, type MouseEvent, type Ref } from 'react'
-import { useReducedMotion, type MotionProps } from 'motion/react'
+import { useCallback, useMemo, type MouseEvent, type Ref } from 'react'
 import type { CustomToastProps } from '../Types/toast-ui.types.ts'
 import type { CustomToastLogicResult } from '../Types/toast-logic.types.ts'
 import {
@@ -14,6 +13,11 @@ import {
 } from '../Animations/toastAnimations.ts'
 import { useCopyToastMessage } from './useCopyToastMessage.ts'
 import { getRemainingToastTime } from '../../../lib/ToastTiming/toastTiming.ts'
+import { useToastReducedMotion } from './useToastReducedMotion.ts'
+import { useToastMotion } from './useToastMotion.ts'
+import { useToastSwipe } from './useToastSwipe.ts'
+import { useToastProgress } from './useToastProgress.ts'
+import type { ToastDragEndHandler } from '../Types/toast-animation.types.ts'
 
 export function useCustomToastLogic(
     {
@@ -25,6 +29,8 @@ export function useCustomToastLogic(
         className,
     }: CustomToastProps,
     forwardedRef?: Ref<HTMLDivElement>,
+    present = true,
+    onExitComplete?: () => void,
 ): CustomToastLogicResult {
     const { refs, handler: interactionHandler } = useToastInteraction({
         id: toast.id,
@@ -32,7 +38,32 @@ export function useCustomToastLogic(
     })
     const { state: copyState, handler: copyHandler } =
         useCopyToastMessage(toast)
-    const prefersReducedMotion = useReducedMotion() === true
+    const prefersReducedMotion = useToastReducedMotion()
+    const motion = useToastMotion({
+        position,
+        present,
+        reducedMotion: prefersReducedMotion,
+        onExitComplete,
+    })
+    const { setWrapperRef: setInteractionRef } = refs
+    const { setNode, stopMotion } = motion.handler
+    const {
+        refs: { setNode: setSwipeNode },
+        handler: swipeHandler,
+    } = useToastSwipe({
+        enabled: present && !prefersReducedMotion,
+        onDismiss: () => onRemove(toast.id),
+        onStart: stopMotion,
+    })
+    const setWrapperRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            setNode(node)
+            setSwipeNode(node)
+            setInteractionRef(node)
+        },
+        [setInteractionRef, setNode, setSwipeNode],
+    )
+    const progress = useToastProgress(toast, prefersReducedMotion)
 
     const remainingTime = getRemainingToastTime(toast)
     const startingScale =
@@ -49,7 +80,7 @@ export function useCustomToastLogic(
         [position],
     )
 
-    const handleDragEnd: NonNullable<MotionProps['onDragEnd']> = (_e, info) => {
+    const handleDragEnd: ToastDragEndHandler = (_e, info) => {
         if (Math.abs(info.offset.x) > 80 || Math.abs(info.velocity.x) > 400) {
             onRemove(toast.id)
         }
@@ -126,7 +157,7 @@ export function useCustomToastLogic(
     )
 
     return {
-        refs,
+        refs: { setWrapperRef, progress },
         state: {
             copied: copyState.copied,
             wrapperClasses: getWrapperClasses(),
@@ -145,6 +176,7 @@ export function useCustomToastLogic(
             dragEnabled: !prefersReducedMotion,
         },
         handler: {
+            ...swipeHandler,
             handleCopyError,
             handleDragEnd,
             handleMouseEnter: interactionHandler.handleMouseEnter,
