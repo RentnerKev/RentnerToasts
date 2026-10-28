@@ -9,7 +9,7 @@ test('retains the boundary anchor for a fast short swipe', () => {
     expect(getToastSwipeVelocity(samples, 65, 120)).toBeGreaterThan(400)
     expect(
         getToastSwipeVelocity(
-            samples.map((sample) => ({ ...sample, x: -sample.x })),
+            samples.map((sample) => ({ x: -sample.x, time: sample.time })),
             -65,
             120,
         ),
