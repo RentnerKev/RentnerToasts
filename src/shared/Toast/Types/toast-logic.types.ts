@@ -81,10 +81,6 @@ export interface UseCopyToastMessageResult {
     }
 }
 
-export interface ToastRegionBranchProps {
-    node: HTMLElement
-}
-
 export interface ToastInteractionProps {
     id: ToastId
     forwardedRef?: Ref<HTMLDivElement>

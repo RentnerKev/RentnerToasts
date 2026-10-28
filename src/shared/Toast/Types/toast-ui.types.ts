@@ -35,7 +35,7 @@ export interface ToastClassNames {
 }
 
 export interface ToastPortalOptions {
-    /** Undefined/null renders inline. 'body' creates a global portal after hydration without browser-only app code. */
+    /** Undefined/null renders inline; 'body' portals after hydration. An active ToastFocusScopeBranch takes precedence over both; an explicit element always wins. */
     portalContainer?: Element | DocumentFragment | 'body' | null
     portalClassName?: string
     portalZIndex?: number

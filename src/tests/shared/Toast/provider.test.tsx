@@ -4,6 +4,7 @@ import {
     ToastProvider,
     LazyToastProvider,
 } from '../../../shared/Toast/Components/ToastProvider.tsx'
+import { ToastFocusScopeBranch } from '../../../shared/Toast/Components/ToastFocusScopeBranch.tsx'
 import { createToastStore } from '../../../lib/ToastStore/toastApi.ts'
 
 test('renders empty providers during SSR without a Suspense boundary', () => {
@@ -206,6 +207,24 @@ test('applies root, progress and link slots through the toast logic without comp
         expect(markup).not.toMatch(/origin-left h-1/)
         expect(markup).toContain('class="text-sky-700"')
         expect(markup).not.toContain('underline-offset-2')
+    } finally {
+        store.dispose()
+    }
+})
+
+test('renders a native branch marker during SSR without browser globals', () => {
+    const store = createToastStore()
+    try {
+        const markup = renderToStaticMarkup(
+            <ToastProvider store={store}>
+                <dialog>
+                    <ToastFocusScopeBranch />
+                </dialog>
+            </ToastProvider>,
+        )
+        expect(markup).toBe(
+            '<dialog><div data-rentner-toast-branch=""></div></dialog>',
+        )
     } finally {
         store.dispose()
     }

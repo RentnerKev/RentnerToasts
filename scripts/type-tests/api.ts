@@ -38,3 +38,8 @@ const invalid: ToastPromiseOptions<number> = {
 }
 void invalid
 store.dispose()
+
+// Both compatibility and main entries expose the dependency-free native branch.
+const nativeBranch: typeof import('@rentnerkev/toasts').ToastFocusScopeBranch =
+    null as unknown as typeof import('@rentnerkev/toasts/radix').ToastFocusScopeBranch
+void nativeBranch

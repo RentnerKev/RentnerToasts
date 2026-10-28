@@ -28,6 +28,7 @@
         "./theme.css"
     ],
     "scripts": {
+        "benchmark": "bun scripts/benchmark.mjs",
         "build": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
         "typecheck": "tsc --noEmit && bun run typecheck:automation && bun run typecheck:api",
         "test": "bun test",
@@ -40,8 +41,8 @@
         "playground:build": "bun --cwd playground build",
         "lint": "oxlint --deny-warnings src playground/src playground/vite.config.ts scripts playwright.config.ts .github",
         "lint:fix": "oxlint --fix --deny-warnings src playground/src playground/vite.config.ts scripts playwright.config.ts .github",
-        "format": "bun fmt src playground/src playground/package.json playground/tsconfig.json playground/vite.config.ts scripts playwright.config.ts package.json tsconfig.json tailwind.css theme.css README.md docs bunfig.toml .oxlintrc.json .github",
-        "format:check": "bun fmt --check src playground/src playground/package.json playground/tsconfig.json playground/vite.config.ts scripts playwright.config.ts package.json tsconfig.json tailwind.css theme.css README.md docs bunfig.toml .oxlintrc.json .github",
+        "format": "bun fmt src playground/src playground/package.json playground/tsconfig.json playground/vite.config.ts scripts playwright.config.ts package.json tsconfig.json tailwind.css theme.css README.md docs bunfig.toml .oxlintrc.json .github benchmarks",
+        "format:check": "bun fmt --check src playground/src playground/package.json playground/tsconfig.json playground/vite.config.ts scripts playwright.config.ts package.json tsconfig.json tailwind.css theme.css README.md docs bunfig.toml .oxlintrc.json .github benchmarks",
         "check": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build",
         "verify": "bun run playground:install && bun run playground:typecheck && bun run check && bun run playground:build && bun run test:browser && bun run pack:check && bun run pack:consumer",
         "typecheck:automation": "tsc --noEmit -p .github/scripts/tsconfig.json",
@@ -64,8 +65,7 @@
         "lucide-react": "^1.0.0",
         "motion": "^12.38.0 || ^13.0.0 || ^14.0.0",
         "react": "^19.0.0",
-        "react-dom": "^19.0.0",
-        "@radix-ui/react-focus-scope": "^1.3.1"
+        "react-dom": "^19.0.0"
     },
     "devDependencies": {
         "@axe-core/playwright": "^4.14.0",
@@ -79,8 +79,7 @@
         "oxlint": "^1.89.0",
         "react": "^19.3.1",
         "react-dom": "^19.3.1",
-        "typescript": "^7.0.2",
-        "@radix-ui/react-focus-scope": "^1.3.1"
+        "typescript": "^7.0.2"
     },
     "exports": {
         ".": {

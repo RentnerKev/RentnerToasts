@@ -16,7 +16,11 @@ import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { chromium, firefox, webkit, expect } from '@playwright/test'
 import { AxeBuilder } from '@axe-core/playwright'
-import { check, checkProviderCompatibility } from './checks.mjs'
+import {
+    check,
+    checkProviderCompatibility,
+    checkNativeBranches,
+} from './checks.mjs'
 
 const packageRoot = process.cwd()
 const manifest = JSON.parse(
@@ -383,6 +387,7 @@ try {
                 await page.evaluate(() => window.consumerHydrationErrors),
             ).toEqual([])
             expect(errors).toEqual([])
+            await checkNativeBranches({ page, expect })
             await check({ page, expect })
             const accessibility = await new AxeBuilder({ page }).analyze()
             expect(accessibility.violations).toEqual([])

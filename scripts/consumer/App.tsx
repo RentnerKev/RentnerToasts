@@ -1,5 +1,17 @@
-import { createToastStore, ToastProvider, useToast } from '@rentnerkev/toasts'
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import {
+    createToastStore,
+    ToastProvider,
+    ToastFocusScopeBranch,
+    useToast,
+} from '@rentnerkev/toasts'
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from 'react'
+import { createPortal } from 'react-dom'
 
 function Defaults({ store }: { store: ReturnType<typeof createToastStore> }) {
     const defaults = useSyncExternalStore(
@@ -38,6 +50,109 @@ function Controls() {
     )
 }
 
+function ShadowScopeBranch() {
+    const [target, setTarget] = useState<ShadowRoot | null>(null)
+    const setHost = useCallback((element: HTMLDivElement | null) => {
+        setTarget(
+            element
+                ? (element.shadowRoot ?? element.attachShadow({ mode: 'open' }))
+                : null,
+        )
+    }, [])
+    return (
+        <>
+            <div ref={setHost} data-testid="shadow-toast-scope" />
+            {target && createPortal(<ToastFocusScopeBranch />, target)}
+        </>
+    )
+}
+
+function NativeScopeFixture() {
+    const [store] = useState(() => createToastStore())
+    const [other] = useState(() => createToastStore())
+    const [custom] = useState(() => createToastStore())
+    const [customTarget, setCustomTarget] = useState<HTMLDivElement | null>(
+        null,
+    )
+    const [branchMounted, setBranchMounted] = useState(true)
+    const outer = useRef<HTMLDialogElement>(null)
+    const inner = useRef<HTMLDialogElement>(null)
+    useEffect(
+        () => () => {
+            store.dispose()
+            other.dispose()
+            custom.dispose()
+        },
+        [store, other, custom],
+    )
+    const notify = () => {
+        if (store.getToastSnapshot().length === 0)
+            store.toast.info('Scoped native notification', { duration: 0 })
+    }
+    return (
+        <>
+            <button
+                type="button"
+                onClick={() => {
+                    outer.current?.showModal()
+                    notify()
+                    custom.toast.info('Explicit container notification', {
+                        duration: 0,
+                    })
+                    other.toast.info('Other store notification', {
+                        duration: 0,
+                    })
+                }}
+            >
+                Open native scope
+            </button>
+            <div ref={setCustomTarget} data-testid="explicit-toast-container" />
+            <ToastProvider store={other} locale="en">
+                {null}
+            </ToastProvider>
+            <ToastProvider store={store} locale="en" portalContainer="body">
+                <dialog ref={outer} aria-label="Native outer scope">
+                    {branchMounted && <ShadowScopeBranch />}
+                    <ToastProvider
+                        store={custom}
+                        locale="en"
+                        portalContainer={customTarget}
+                    >
+                        <ToastFocusScopeBranch />
+                    </ToastProvider>
+                    <button
+                        type="button"
+                        onClick={() => inner.current?.showModal()}
+                    >
+                        Open nested scope
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => outer.current?.close()}
+                    >
+                        Close native scope
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setBranchMounted(false)}
+                    >
+                        Remove native branch
+                    </button>
+                    <dialog ref={inner} aria-label="Native inner scope">
+                        <ToastFocusScopeBranch />
+                        <button
+                            type="button"
+                            onClick={() => inner.current?.close()}
+                        >
+                            Close nested scope
+                        </button>
+                    </dialog>
+                </dialog>
+            </ToastProvider>
+        </>
+    )
+}
+
 export function App() {
     const [store] = useState(() => createToastStore())
     const [storeFacade, setStoreFacade] = useState(store)
@@ -59,6 +174,7 @@ export function App() {
     )
     return (
         <>
+            <NativeScopeFixture />
             <label htmlFor="toast-style">Toast style</label>
             <select
                 id="toast-style"

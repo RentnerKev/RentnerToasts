@@ -321,3 +321,83 @@ export async function checkProviderCompatibility({ browser, url, expect }) {
     }
     return paints
 }
+
+export async function checkNativeBranches({ page, expect }) {
+    await page.getByRole('button', { name: 'Open native scope' }).click()
+    const outer = page.getByRole('dialog', {
+        name: 'Native outer scope',
+        exact: true,
+    })
+    const inner = page.getByRole('dialog', {
+        name: 'Native inner scope',
+        exact: true,
+    })
+    const scoped = page
+        .locator('[data-rentner-toast-region]')
+        .filter({ hasText: 'Scoped native notification' })
+    const other = page
+        .locator('[data-rentner-toast-region]')
+        .filter({ hasText: 'Other store notification' })
+    await expect(
+        outer
+            .getByTestId('shadow-toast-scope')
+            .locator('[data-rentner-toast-region]'),
+    ).toHaveCount(1)
+    await expect(
+        page
+            .getByTestId('shadow-toast-scope')
+            .locator('[data-rentner-toast-region]'),
+    ).toHaveCount(1)
+    expect(await other.evaluate((node) => node.closest('dialog'))).toBeNull()
+    await expect(
+        page
+            .getByTestId('explicit-toast-container')
+            .locator('[data-rentner-toast-region]'),
+    ).toContainText('Explicit container notification')
+    let action = scoped.getByRole('button', { name: 'Close notification' })
+    await action.focus()
+    await expect(action).toBeFocused()
+    await page.getByRole('button', { name: 'Open nested scope' }).click()
+    await expect(inner.locator('[data-rentner-toast-region]')).toHaveCount(1)
+    action = scoped.getByRole('button', { name: 'Close notification' })
+    await action.focus()
+    await expect(action).toBeFocused()
+    await page.getByRole('button', { name: 'Close nested scope' }).click()
+    await expect(
+        outer
+            .getByTestId('shadow-toast-scope')
+            .locator('[data-rentner-toast-region]'),
+    ).toHaveCount(1)
+    await page.getByRole('button', { name: 'Close native scope' }).click()
+    await expect
+        .poll(() =>
+            scoped.evaluate(
+                (node) =>
+                    node.getRootNode() === node.ownerDocument &&
+                    node.closest('dialog') === null,
+            ),
+        )
+        .toBe(true)
+    await action.focus()
+    await expect(action).toBeFocused()
+    await page.getByRole('button', { name: 'Open native scope' }).click()
+    await expect(
+        outer
+            .getByTestId('shadow-toast-scope')
+            .locator('[data-rentner-toast-region]'),
+    ).toHaveCount(1)
+    await page.getByRole('button', { name: 'Remove native branch' }).click()
+    await expect
+        .poll(() =>
+            scoped.evaluate(
+                (node) =>
+                    node.getRootNode() === node.ownerDocument &&
+                    node.closest('dialog') === null,
+            ),
+        )
+        .toBe(true)
+    await page.getByRole('button', { name: 'Close native scope' }).click()
+    await scoped.getByRole('button', { name: 'Close notification' }).click()
+    await expect(scoped).toHaveCount(0)
+    await page.reload()
+}
