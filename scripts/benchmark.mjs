@@ -215,7 +215,7 @@ if (process.argv.includes('--check')) {
     process.exit(0)
 }
 let html = ''
-for (let index = 0; index < 100; index++) html = renderer.render()
+for (let index = 0; index < 1000; index++) html = renderer.render()
 const samples = []
 for (let sample = 0; sample < 31; sample++) {
     const start = performance.now()
@@ -247,7 +247,8 @@ if (
         'Sources changed during measurement; discard this run and repeat after edits finish',
     )
 const report = {
-    schemaVersion: 2,
+    schemaVersion: 3,
+    trial: Number(option('--trial') ?? 1),
     package: manifest.name,
     packageVersion: manifest.version,
     revision,
@@ -314,7 +315,7 @@ const report = {
         ),
     },
     ssr: {
-        warmupRenders: 100,
+        warmupRenders: 1000,
         samples: 31,
         rendersPerSample: 100,
         rawSampleMsPerRender: samples,
