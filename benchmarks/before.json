@@ -1,0 +1,95 @@
+{
+    "schemaVersion": 1,
+    "phase": "before",
+    "baselineCommit": "063b61f21eb9b2cf352c43f063777dedda4f1d06",
+    "comparison": "Compare isolated to isolated and integrated to integrated to hold tooltip implementation constant; before.isolated to after.integrated represents the future combined migration. Integrated mode is an explicit source alias, not the published dependency lock.",
+    "reports": {
+        "isolated": {
+            "schemaVersion": 2,
+            "package": "@rentnerkev/toasts",
+            "packageVersion": "3.7.0",
+            "revision": "063b61f21eb9b2cf352c43f063777dedda4f1d06",
+            "baselineCommit": "063b61f21eb9b2cf352c43f063777dedda4f1d06",
+            "sourceKind": "git-archive",
+            "sourceTree": {
+                "sha256": "386a108c7583e4f14f7969d72932383542c27d90cf9e3fc9da7188dcdba0abb3",
+                "files": 61,
+                "includes": "src/**, package.json, bun.lock, tailwind.css and theme.css when present"
+            },
+            "harnessSha256": "6a76cba6ff3120e4c49244125143516c22ddc1228757356bb243f67ec171aa40",
+            "measuredAt": "2026-10-28T00:01:22.947Z",
+            "environment": {
+                "bun": "1.4.4",
+                "nodeCompatibility": "v26.3.0",
+                "platform": "win32",
+                "release": "10.0.26300",
+                "arch": "x64",
+                "cpu": "AMD Ryzen 9 9900X 12-Core Processor",
+                "logicalCpus": 24,
+                "totalMemoryBytes": 33493741568,
+                "mode": "production",
+                "timezone": "Europe/Berlin"
+            },
+            "scenario": "empty provider with focus-scope adapter",
+            "methodology": {
+                "scheduling": "Run serially on the same host after test/build processes finish. No timing assertions.",
+                "timing": "performance.now; one sample is 100 synchronous renderToStaticMarkup calls divided by 100; samples retain original order; nearest-rank p95.",
+                "bundle": "Bun production browser bundle of representative named exports, minified; gzip level 9; shared consumer peers external; tooltip dependency is bundled.",
+                "ssr": "Bun production SSR bundle; all React/ReactDOM imports resolve to this package root to prevent duplicate React instances; tree constructed before timing.",
+                "limitations": [
+                    "Closed-widget SSR measures server rendering, not interaction latency, layout, accessibility or browser memory.",
+                    "Bundle byte counts exclude shared React/ReactDOM, icon and Motion peers and CSS.",
+                    "Single-machine observations can vary; no performance pass/fail threshold is inferred."
+                ]
+            },
+            "dependencyMode": "isolated-installed-dependencies",
+            "dependencies": {
+                "declaredTooltipRange": null,
+                "installedPublishedTooltip": null,
+                "nativeTooltipOverride": null,
+                "releasePrerequisite": null
+            },
+            "bundle": {
+                "exports": ["ToastProvider", "ToastFocusScopeBranch"],
+                "external": [
+                    "react",
+                    "react/*",
+                    "react-dom",
+                    "react-dom/*",
+                    "lucide-react",
+                    "motion",
+                    "motion/*"
+                ],
+                "minifiedBytes": 23185,
+                "gzipBytes": 8294
+            },
+            "ssr": {
+                "warmupRenders": 100,
+                "samples": 31,
+                "rendersPerSample": 100,
+                "rawSampleMsPerRender": [
+                    0.007746999999999957, 0.006576000000000022,
+                    0.00619700000000023, 0.005461999999999989,
+                    0.027838999999999885, 0.004010000000000105,
+                    0.0033320000000000506, 0.0033809999999999717,
+                    0.0030080000000000952, 0.0027110000000001833,
+                    0.0030400000000000206, 0.003743000000000052,
+                    0.003812000000000069, 0.004133999999999958,
+                    0.0034979999999998766, 0.004410000000000025,
+                    0.02398699999999991, 0.002079999999999984,
+                    0.0020250000000001478, 0.0020729999999997517,
+                    0.0019599999999999796, 0.0018299999999999272,
+                    0.001910000000000025, 0.001863999999999919,
+                    0.0019190000000000396, 0.0019249999999999545,
+                    0.0017519999999998958, 0.0019590000000002305,
+                    0.008164999999999907, 0.001671999999999798,
+                    0.00150100000000009
+                ],
+                "medianMs": 0.0030400000000000206,
+                "p95Ms": 0.02398699999999991,
+                "htmlBytes": 25,
+                "htmlSha256": "b373979b2efdd669c14c96da7ac5d7b1c699dddb9bc809023ba838fdeafc4cec"
+            }
+        }
+    }
+}
