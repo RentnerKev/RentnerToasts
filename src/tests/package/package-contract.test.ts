@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 interface PackageContract {
     exports: Record<string, unknown>
     peerDependencies: Record<string, string>
+    devDependencies: Record<string, string>
     scripts: Record<string, string>
 }
 
@@ -20,6 +21,19 @@ const usageGuide = readFileSync(
 )
 
 describe('published package contract', () => {
+    test('keeps native toast focus management free of Radix dependencies', () => {
+        for (const dependencies of [
+            packageJson.peerDependencies,
+            packageJson.devDependencies,
+        ]) {
+            expect(
+                Object.keys(dependencies).filter((name) =>
+                    name.startsWith('@radix-ui/'),
+                ),
+            ).toEqual([])
+        }
+    })
+
     test('keeps the shared React and test contracts', () => {
         expect(packageJson.peerDependencies.react).toBe('^19.0.0')
         expect(packageJson.peerDependencies['react-dom']).toBe('^19.0.0')

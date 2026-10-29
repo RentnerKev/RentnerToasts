@@ -1,16 +1,26 @@
-import { useFocusScopeBranch } from '@radix-ui/react-focus-scope'
-import { useToastRegions } from '../Hooks/useToastRegions.ts'
-import type { ToastRegionBranchProps } from '../Types/toast-logic.types.ts'
+import { useToastFocusScopeBranch } from '../Hooks/useToastFocusScopeBranch.ts'
+import type { ToastFocusScopeBranchProps } from '../Types/toast-ui.types.ts'
 
-function ToastRegionBranch({ node }: ToastRegionBranchProps) {
-    useFocusScopeBranch(node)
-    return null
-}
-
-/** Place inside Radix Dialog.Content to keep global toast actions in its focus scope. */
-export function ToastFocusScopeBranch() {
-    const regions = useToastRegions()
-    return regions.map((node) => (
-        <ToastRegionBranch key={node.id} node={node} />
-    ))
+/** Place inside dialog content to render toast actions within its native focus scope. */
+export function ToastFocusScopeBranch({
+    active = true,
+}: ToastFocusScopeBranchProps = {}) {
+    const {
+        refs: { setScopeRef },
+    } = useToastFocusScopeBranch(active)
+    return (
+        <div
+            ref={setScopeRef}
+            data-rentner-toast-focus-scope=""
+            popover="manual"
+            style={{
+                display: 'contents',
+                background: 'transparent',
+                border: 0,
+                padding: 0,
+                margin: 0,
+                pointerEvents: 'none',
+            }}
+        />
+    )
 }

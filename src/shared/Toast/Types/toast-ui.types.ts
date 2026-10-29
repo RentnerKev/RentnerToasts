@@ -35,10 +35,15 @@ export interface ToastClassNames {
 }
 
 export interface ToastPortalOptions {
-    /** Undefined/null renders inline. 'body' creates a global portal after hydration without browser-only app code. */
+    /** Undefined/null renders inline. 'body' creates a global portal after hydration. An active ToastFocusScopeBranch temporarily hosts surfaces outside its dialog. */
     portalContainer?: Element | DocumentFragment | 'body' | null
     portalClassName?: string
     portalZIndex?: number
+}
+
+export interface ToastFocusScopeBranchProps {
+    /** Disable a mounted host when a custom dialog has no native open/hidden state. */
+    active?: boolean
 }
 
 export interface CustomToastProps {

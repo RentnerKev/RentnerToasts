@@ -36,6 +36,7 @@ export type {
     ToastClassNames,
     ToastPortalOptions,
     ToastProviderProps,
+    ToastFocusScopeBranchProps,
 } from './shared/Toast/Types/toast-ui.types.ts'
 
 export {
