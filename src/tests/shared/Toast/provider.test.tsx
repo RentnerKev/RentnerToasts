@@ -5,6 +5,26 @@ import {
     LazyToastProvider,
 } from '../../../shared/Toast/Components/ToastProvider.tsx'
 import { createToastStore } from '../../../lib/ToastStore/toastApi.ts'
+import { ToastFocusScopeBranch } from '../../../shared/Toast/Components/ToastFocusScopeBranch.tsx'
+
+test('renders a native focus host during SSR without browser globals', () => {
+    const store = createToastStore()
+    try {
+        store.toast.info('Server notification', { duration: 0 })
+        const markup = renderToStaticMarkup(
+            <ToastProvider store={store}>
+                <dialog open>
+                    <ToastFocusScopeBranch />
+                </dialog>
+            </ToastProvider>,
+        )
+        expect(markup).toContain('data-rentner-toast-focus-scope=""')
+        expect(markup).toContain('popover="manual"')
+        expect(markup).toContain('Server notification')
+    } finally {
+        store.dispose()
+    }
+})
 
 test('renders empty providers during SSR without a Suspense boundary', () => {
     const store = createToastStore()

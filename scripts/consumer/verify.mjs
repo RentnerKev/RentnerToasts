@@ -34,6 +34,12 @@ function checkNativeDependencies(packageManifest) {
         'peerDependencies',
         'optionalDependencies',
     ]) {
+        for (const name of Object.keys(packageManifest[field] ?? {})) {
+            assert.ok(
+                !name.startsWith('@radix-ui/'),
+                `Native toast focus management must not declare ${name} in ${field}`,
+            )
+        }
         for (const name of motionPackages) {
             assert.ok(
                 !Object.hasOwn(packageManifest[field] ?? {}, name),
@@ -145,6 +151,10 @@ try {
         readFileSync(join(consumerRoot, 'package-lock.json'), 'utf8'),
     )
     for (const path of Object.keys(installedLock.packages)) {
+        assert.ok(
+            !path.includes('node_modules/@radix-ui/'),
+            `Packed consumer must not install Radix: ${path}`,
+        )
         for (const name of motionPackages) {
             assert.ok(
                 !path.endsWith(`node_modules/${name}`),
