@@ -49,10 +49,7 @@ export function useToastInteraction({
         }
     }, [pauseOwner, store, id])
 
-    function setInteractionPause(
-        reason: Exclude<ToastPauseReason, 'action'>,
-        paused: boolean,
-    ) {
+    function setInteractionPause(reason: ToastPauseReason, paused: boolean) {
         interactionReasons.current[reason] = paused
         store.setToastPauseReason(id, reason, paused, pauseOwner)
     }

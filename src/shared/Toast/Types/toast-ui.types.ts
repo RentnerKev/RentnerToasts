@@ -83,7 +83,7 @@ export interface ToastProviderProps extends ToastPortalOptions {
 
 export interface UseCustomToastLogicResult {
     state: {
-        actionPending: boolean
+        actionPending?: boolean
         copied: boolean
         wrapperClasses: string
         toastIcon: ReactNode
@@ -101,7 +101,7 @@ export interface UseCustomToastLogicResult {
         dragEnabled: boolean
     }
     handler: {
-        handleAction: () => void
+        handleAction?: () => void
         handleCopyError: (e: MouseEvent<HTMLButtonElement>) => void
         handleDragEnd: ToastDragEndHandler
         handleMouseEnter: () => void

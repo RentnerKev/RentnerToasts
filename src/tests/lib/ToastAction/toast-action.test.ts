@@ -310,3 +310,67 @@ test('notifies every surface and isolates pending snapshots by store, ID and act
         other.dispose()
     }
 })
+
+test('supports legacy pause handlers and keeps a pending action paused after UI focus leaves', async () => {
+    const store = createToastStore()
+    const task = deferred()
+    const claims: Array<{
+        reason: 'hover' | 'focus'
+        paused: boolean
+        owner?: symbol
+    }> = []
+    const legacyPauseHandler = (
+        id: string,
+        reason: 'hover' | 'focus',
+        paused: boolean,
+        owner?: symbol,
+    ) => {
+        switch (reason) {
+            case 'hover':
+            case 'focus':
+                claims.push({ reason, paused, owner })
+                store.setToastPauseReason(id, reason, paused, owner)
+                return
+            default:
+                throw new Error('Unsupported legacy pause reason')
+        }
+    }
+    const legacyStore: import('../../../types.ts').ToastStore = {
+        ...store,
+        setToastPauseReason: legacyPauseHandler,
+    }
+    const uiOwner = Symbol('legacy-ui')
+    try {
+        const id = legacyStore.toast.info('Still working', {
+            duration: 60000,
+            action: {
+                label: 'Run',
+                onClick: () => task.promise,
+                dismissOnSuccess: false,
+            },
+        })
+        legacyStore.setToastPauseReason(id, 'focus', true, uiOwner)
+        const action = legacyStore.getToastSnapshot()[0].action!
+        const pending = runToastAction(legacyStore, id, action)
+        const remaining = legacyStore.getToastSnapshot()[0].remaining
+        legacyStore.setToastPauseReason(id, 'focus', false, uiOwner)
+        expect(isToastActionPending(legacyStore, id, action)).toBe(true)
+        expect(legacyStore.getToastSnapshot()[0].timerStartedAt).toBeUndefined()
+        expect(legacyStore.getToastSnapshot()[0].remaining).toBe(remaining)
+        task.resolve()
+        await pending
+        expect(isToastActionPending(legacyStore, id, action)).toBe(false)
+        expect(legacyStore.getToastSnapshot()[0].timerStartedAt).toBeDefined()
+        const actionClaims = claims.filter((claim) => claim.owner !== uiOwner)
+        expect(
+            actionClaims.map(({ reason, paused }) => ({ reason, paused })),
+        ).toEqual([
+            { reason: 'focus', paused: true },
+            { reason: 'focus', paused: false },
+        ])
+        expect(typeof actionClaims[0]?.owner).toBe('symbol')
+        expect(actionClaims[0]?.owner).toBe(actionClaims[1]?.owner)
+    } finally {
+        store.dispose()
+    }
+})

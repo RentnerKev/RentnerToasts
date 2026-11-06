@@ -1,6 +1,6 @@
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 export type ToastId = string
-export type ToastPauseReason = 'hover' | 'focus' | 'action'
+export type ToastPauseReason = 'hover' | 'focus'
 export type ToastPosition =
     | 'top-left'
     | 'top-right'

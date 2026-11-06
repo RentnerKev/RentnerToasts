@@ -68,11 +68,13 @@ export interface CustomToastLogicResult {
         UseCustomToastLogicResult['state'],
         'toastIcon' | 'parsedTitle' | 'parsedContent'
     > & {
+        actionPending: boolean
         parsedTitle: ToastTextToken[]
         parsedContent: ToastTextToken[]
         linkClassName: string
     }
     handler: UseCustomToastLogicResult['handler'] & {
+        handleAction: () => void
         handlePointerDown: PointerEventHandler<HTMLDivElement>
         handlePointerMove: PointerEventHandler<HTMLDivElement>
         handlePointerUp: PointerEventHandler<HTMLDivElement>

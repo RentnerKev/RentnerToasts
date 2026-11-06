@@ -57,7 +57,8 @@ export async function runToastAction(
     storeActions.set(id, actions)
     runningActions.set(store, storeActions)
     const owner = Symbol('toast-action')
-    store.setToastPauseReason(id, 'action', true, owner)
+    // A private owner keeps the action paused independently of UI focus claims.
+    store.setToastPauseReason(id, 'focus', true, owner)
     notifyActionListeners(store)
     try {
         await action.onClick(id)
@@ -78,7 +79,7 @@ export async function runToastAction(
         actions.delete(action)
         if (actions.size === 0) storeActions.delete(id)
         if (storeActions.size === 0) runningActions.delete(store)
-        store.setToastPauseReason(id, 'action', false, owner)
+        store.setToastPauseReason(id, 'focus', false, owner)
         notifyActionListeners(store)
     }
 }
