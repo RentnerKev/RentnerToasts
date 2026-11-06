@@ -207,3 +207,65 @@ test.describe('toast playground', () => {
         await expect(toast).toBeHidden()
     })
 })
+
+test('runs toast actions by keyboard once, exposes pending state and restores focus', async ({
+    page,
+}) => {
+    await page.goto('/')
+    await page.clock.install()
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    const trigger = page.getByTestId('show-action-toast')
+    await trigger.click()
+    await trigger.focus()
+    const notification = page
+        .getByRole('status')
+        .filter({ hasText: 'Die Datei wurde gelöscht.' })
+    const action = notification.getByRole('button', {
+        name: 'Datei wiederherstellen',
+    })
+    await action.focus()
+    await page.clock.fastForward(7000)
+    await expect(notification).toBeVisible()
+    await page.keyboard.press('Enter')
+    await expect(action).toBeDisabled()
+    await expect(action).toHaveAttribute('aria-busy', 'true')
+    // Synthetic clicks also exercise the shared guard before React can re-render.
+    await action.evaluate((element) => {
+        element.click()
+        element.click()
+    })
+    await expect(action).toHaveAttribute('aria-busy', 'true')
+    await page.clock.fastForward(300)
+    await expect(notification).toBeHidden()
+    await expect(
+        page
+            .getByRole('status')
+            .filter({ hasText: 'Datei wiederhergestellt.' }),
+    ).toHaveCount(1)
+    await expect(trigger).toBeFocused()
+})
+
+test('keeps action labels and controls accessible in a narrow viewport', async ({
+    page,
+}) => {
+    await page.goto('/')
+    await page.setViewportSize({ width: 320, height: 640 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.getByTestId('show-action-toast').click()
+    const action = page.getByRole('button', { name: 'Datei wiederherstellen' })
+    await expect(action).toBeVisible()
+    const bounds = await action.boundingBox()
+    expect(bounds).not.toBeNull()
+    expect(bounds!.x).toBeGreaterThanOrEqual(0)
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(320)
+    const results = await new AxeBuilder({ page })
+        .include('section[aria-label]')
+        .analyze()
+    expect(results.violations).toEqual([])
+    await action.click()
+    await expect(
+        page
+            .getByRole('status')
+            .filter({ hasText: 'Datei wiederhergestellt.' }),
+    ).toBeVisible()
+})

@@ -80,6 +80,7 @@ export function createToastApi(store: ToastApiStore): ToastApi {
                 content: resolvedMessage.content,
                 title: resolvedMessage.title ?? null,
                 type,
+                action: resolvedMessage.action ?? null,
                 duration:
                     resolvedMessage.duration ??
                     duration ??
@@ -87,6 +88,7 @@ export function createToastApi(store: ToastApiStore): ToastApi {
             })
         } catch {
             store.updateToast(id, {
+                action: null,
                 content: PROMISE_RESOLVER_FALLBACKS[type],
                 title: null,
                 type,
@@ -105,6 +107,7 @@ export function createToastApi(store: ToastApiStore): ToastApi {
             loadingMessage.title,
             'info',
             0,
+            loadingMessage,
         )
 
         return runPromise(input).then(

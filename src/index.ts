@@ -8,6 +8,7 @@ export { useToast } from './shared/Toast/Hooks/useToastStore.ts'
 export { resolveToastMessages } from './lib/Messages/toastMessages.ts'
 export { toastMessageCatalog } from './config/messages.config.ts'
 export type {
+    ToastAction,
     ToastApi,
     ToastContentOptions,
     ToastId,

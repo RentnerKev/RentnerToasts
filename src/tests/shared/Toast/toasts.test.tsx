@@ -269,6 +269,23 @@ describe('toast API', () => {
         expect(alertMarkup).toContain('aria-label="Fehlermeldung kopieren"')
     })
 
+    test('renders a named native action button with the custom styling slot', () => {
+        toast.info('Undo a change', {
+            duration: 0,
+            action: { label: 'Undo', onClick: () => {} },
+        })
+        const markup = renderToStaticMarkup(
+            createElement(Toast, {
+                position: 'bottom-right',
+                classNames: { actionButton: 'custom-action' },
+            }),
+        )
+        expect(markup).toContain('data-toast-action=""')
+        expect(markup).toContain('class="custom-action"')
+        expect(markup).toContain('>Undo</button>')
+        expect(markup).not.toContain('aria-busy="true"')
+    })
+
     test('renders English accessibility messages', () => {
         toast.error('An error occurred', { title: 'Error', duration: 0 })
 

@@ -15,6 +15,21 @@ function handleShowLinkToast() {
     )
 }
 
+function handleShowActionToast() {
+    toast.info('Die Datei wurde gelöscht.', {
+        title: 'Rückgängig machen',
+        action: {
+            label: 'Datei wiederherstellen',
+            onClick: async () => {
+                await new Promise<void>((resolve) =>
+                    globalThis.setTimeout(resolve, 250),
+                )
+                toast.success('Datei wiederhergestellt.', { duration: 0 })
+            },
+        },
+    })
+}
+
 export function usePlaygroundLogic(): PlaygroundLogicResult {
     const [darkMode, setDarkMode] = useState(true)
 
@@ -28,6 +43,7 @@ export function usePlaygroundLogic(): PlaygroundLogicResult {
             handleDarkModeChange,
             handleShowToasts,
             handleShowLinkToast,
+            handleShowActionToast,
             handleDismissAll: toast.dismissAll,
         },
     }

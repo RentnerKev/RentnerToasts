@@ -16,6 +16,7 @@ import { getRemainingToastTime } from '../../../lib/ToastTiming/toastTiming.ts'
 import { useToastReducedMotion } from './useToastReducedMotion.ts'
 import { useToastMotion } from './useToastMotion.ts'
 import { useToastSwipe } from './useToastSwipe.ts'
+import { useToastCallback } from './useToastCallback.ts'
 import { useToastProgress } from './useToastProgress.ts'
 import type { ToastDragEndHandler } from '../Types/toast-animation.types.ts'
 
@@ -38,6 +39,7 @@ export function useCustomToastLogic(
     })
     const { state: copyState, handler: copyHandler } =
         useCopyToastMessage(toast)
+    const action = useToastCallback(toast, present, onRemove)
     const prefersReducedMotion = useToastReducedMotion()
     const motion = useToastMotion({
         position,
@@ -159,6 +161,7 @@ export function useCustomToastLogic(
     return {
         refs: { setWrapperRef, progress },
         state: {
+            actionPending: action.state.actionPending,
             copied: copyState.copied,
             wrapperClasses: getWrapperClasses(),
             progressClasses: getProgressClasses(),
@@ -177,6 +180,7 @@ export function useCustomToastLogic(
         },
         handler: {
             ...swipeHandler,
+            handleAction: action.handler.handleAction,
             handleCopyError,
             handleDragEnd,
             handleMouseEnter: interactionHandler.handleMouseEnter,

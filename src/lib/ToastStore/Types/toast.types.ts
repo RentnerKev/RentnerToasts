@@ -1,16 +1,26 @@
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
 export type ToastId = string
-export type ToastPauseReason = 'hover' | 'focus'
+export type ToastPauseReason = 'hover' | 'focus' | 'action'
 export type ToastPosition =
     | 'top-left'
     | 'top-right'
     | 'bottom-left'
     | 'bottom-right'
 
+export interface ToastAction {
+    readonly label: string
+    readonly onClick: (id: ToastId) => void | PromiseLike<void>
+    /** Dismiss after a successful callback. Defaults to true; errors keep the toast. */
+    readonly dismissOnSuccess?: boolean
+    /** Receives callback failures. Errors from this handler are also contained. */
+    readonly onError?: (error: unknown, id: ToastId) => void | PromiseLike<void>
+}
+
 export interface Toast {
     readonly id: ToastId
     readonly content: string
     readonly title?: string
+    readonly action?: ToastAction
     readonly type: ToastType
     readonly duration: number
     readonly createdAt: number
@@ -26,6 +36,7 @@ export interface ToastDedupeOptions {
 }
 
 export interface ToastOptions extends ToastDedupeOptions {
+    action?: ToastAction
     title?: string
     duration?: number
 }
@@ -38,6 +49,8 @@ export interface ToastContentOptions extends Omit<
 }
 
 export interface ToastUpdateOptions {
+    /** Undefined preserves the action; null removes it. */
+    action?: ToastAction | null
     content?: string
     title?: string | null
     type?: ToastType
@@ -115,7 +128,7 @@ export interface ToastStore {
         title?: string,
         type?: ToastType,
         duration?: number,
-        options?: ToastDedupeOptions,
+        options?: ToastDedupeOptions & Pick<ToastOptions, 'action'>,
     ) => ToastId
     updateToast: (id: ToastId, options: ToastUpdateOptions) => boolean
     removeToast: (id: ToastId) => void

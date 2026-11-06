@@ -3,6 +3,7 @@ export interface PlaygroundLogicResult {
     handler: {
         handleDarkModeChange: () => void
         handleShowToasts: () => void
+        handleShowActionToast: () => void
         handleShowLinkToast: () => void
         handleDismissAll: () => void
     }

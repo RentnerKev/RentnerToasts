@@ -24,6 +24,7 @@ export interface ToastClassNames {
     body?: string
     title?: string
     content?: string
+    actionButton?: string
     actions?: string
     closeButton?: string
     closeIcon?: string
@@ -82,6 +83,7 @@ export interface ToastProviderProps extends ToastPortalOptions {
 
 export interface UseCustomToastLogicResult {
     state: {
+        actionPending: boolean
         copied: boolean
         wrapperClasses: string
         toastIcon: ReactNode
@@ -99,6 +101,7 @@ export interface UseCustomToastLogicResult {
         dragEnabled: boolean
     }
     handler: {
+        handleAction: () => void
         handleCopyError: (e: MouseEvent<HTMLButtonElement>) => void
         handleDragEnd: ToastDragEndHandler
         handleMouseEnter: () => void

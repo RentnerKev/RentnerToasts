@@ -6,7 +6,7 @@ import type {
 import type {
     Toast,
     ToastDefaults,
-    ToastDedupeOptions,
+    ToastOptions,
     ToastId,
     ToastPauseReason,
     ToastStore,
@@ -346,7 +346,7 @@ export function createToastStoreCore(
         title?: string,
         type: ToastType = 'success',
         duration: number = toastDefaults.duration,
-        dedupe: ToastDedupeOptions = {},
+        dedupe: ToastOptions = {},
     ): ToastId {
         const createdAt = Date.now()
         const dedupeWindow = normalizeDedupeWindow(
@@ -376,6 +376,9 @@ export function createToastStoreCore(
                 id,
                 content,
                 title,
+                action: dedupe.action
+                    ? Object.freeze({ ...dedupe.action })
+                    : undefined,
                 type,
                 duration: normalizedDuration,
                 createdAt,
@@ -420,6 +423,12 @@ export function createToastStoreCore(
             : currentToast.duration
         const nextToast: Toast = Object.freeze({
             ...currentToast,
+            action:
+                updateOptions.action === null
+                    ? undefined
+                    : updateOptions.action === undefined
+                      ? currentToast.action
+                      : Object.freeze({ ...updateOptions.action }),
             content: updateOptions.content ?? currentToast.content,
             title:
                 updateOptions.title === null
@@ -440,7 +449,8 @@ export function createToastStoreCore(
             !resetsDuration &&
             nextToast.content === currentToast.content &&
             nextToast.title === currentToast.title &&
-            nextToast.type === currentToast.type
+            nextToast.type === currentToast.type &&
+            nextToast.action === currentToast.action
         )
             return true
         toastsById.set(id, nextToast)

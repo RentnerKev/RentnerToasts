@@ -86,6 +86,23 @@ export function CustomToast({
                         className={state.linkClassName}
                     />
                 </span>
+                {toast.action && (
+                    <button
+                        type="button"
+                        data-toast-action=""
+                        aria-disabled={
+                            !present || state.actionPending || undefined
+                        }
+                        aria-busy={state.actionPending || undefined}
+                        onClick={handler.handleAction}
+                        className={
+                            classNames?.actionButton ??
+                            'mt-2 self-start max-w-full whitespace-normal wrap-break-word rounded-rentner-control border border-current px-3 py-1.5 text-sm font-semibold cursor-pointer touch-manipulation hover:opacity-80 aria-disabled:cursor-wait aria-disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent focus-visible:ring-offset-2'
+                        }
+                    >
+                        {toast.action.label}
+                    </button>
+                )}
             </div>
 
             <div

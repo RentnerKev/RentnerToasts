@@ -19,6 +19,15 @@ export function ToastActions({ handler }: ToastActionsProps) {
             </button>
 
             <button
+                type="button"
+                className="bg-emerald-700 text-white p-2 rounded"
+                data-testid="show-action-toast"
+                onClick={handler.handleShowActionToast}
+            >
+                Toast mit Aktion anzeigen
+            </button>
+
+            <button
                 className="bg-gray-600 text-white p-2 rounded"
                 data-testid="dismiss-all"
                 onClick={handler.handleDismissAll}
