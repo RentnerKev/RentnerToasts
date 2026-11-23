@@ -163,6 +163,8 @@ export function createToastStore(options: ToastStoreOptions = {}): ToastStore {
     return attachToastApi(createToastStoreCore(options))
 }
 
-export const defaultToastStore = attachToastApi(defaultToastStoreCore)
+export const defaultToastStore = /*#__PURE__*/ attachToastApi(
+    defaultToastStoreCore,
+)
 
 export const toast: ToastApi = defaultToastStore.toast

@@ -1,7 +1,7 @@
 import type { ToastDefaults, ToastStore } from './toast.types.ts'
 export interface ToastTimer {
     handle: ReturnType<typeof globalThis.setTimeout>
-    token: symbol
+    token: number
 }
 
 export type ToastProviderDefaultsRegistrar = (

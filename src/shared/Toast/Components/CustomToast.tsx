@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react'
 import { ToastText } from './ToastText.tsx'
 import { ToastIcon } from './ToastIcon.tsx'
 import { Check, Copy, X } from 'lucide-react'
@@ -5,7 +6,7 @@ import type { CustomToastComponentProps } from '../Types/toast-logic.types.ts'
 import { ToastActionButton } from './ToastActionButton.tsx'
 import { useCustomToastLogic } from '../Hooks/useCustomToastLogic.ts'
 
-export function CustomToast({
+export const CustomToast = memo(function CustomToast({
     toast,
     position,
     onRemove,
@@ -15,6 +16,7 @@ export function CustomToast({
     messages,
     ref,
     present = true,
+    reducedMotion = false,
     onExitComplete,
 }: CustomToastComponentProps) {
     const {
@@ -34,6 +36,12 @@ export function CustomToast({
         ref,
         present,
         onExitComplete,
+        reducedMotion,
+    )
+
+    const handleClose = useCallback(
+        () => onRemove(toast.id),
+        [onRemove, toast.id],
     )
 
     return (
@@ -146,7 +154,7 @@ export function CustomToast({
                     animated={state.dragEnabled}
                     type="button"
                     data-toast-close=""
-                    onClick={() => onRemove(toast.id)}
+                    onClick={handleClose}
                     aria-label={messages.closeNotification}
                     className={`relative group shrink-0 cursor-pointer touch-manipulation overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent focus-visible:ring-offset-2 ${classNames?.closeButton ?? 'rounded-full p-1.5'}`}
                 >
@@ -174,4 +182,4 @@ export function CustomToast({
             )}
         </div>
     )
-}
+})

@@ -22,6 +22,14 @@ import {
 } from '../ToastTiming/toastTiming.ts'
 
 const DEFAULT_MAX_VISIBLE_TOASTS = 3
+const EMPTY_SNAPSHOT: readonly Toast[] = Object.freeze([])
+
+interface ToastNode {
+    readonly id: ToastId
+    toast: Toast
+    prev: ToastNode | null
+    next: ToastNode | null
+}
 
 function normalizeDedupeWindow(value: number | undefined, fallback: number) {
     return value !== undefined &&
@@ -62,31 +70,47 @@ function normalizeToastDefaults(
     defaults: Partial<ToastDefaults>,
     fallback: ToastDefaults,
 ): ToastDefaults {
+    const duration =
+        defaults.duration === undefined
+            ? fallback.duration
+            : (normalizeToastDuration(defaults.duration, fallback.duration) ??
+              fallback.duration)
+    const pauseWhenQueued =
+        typeof defaults.pauseWhenQueued === 'boolean'
+            ? defaults.pauseWhenQueued
+            : (fallback.pauseWhenQueued ?? true)
+    const maxVisibleToasts =
+        defaults.maxVisibleToasts === undefined
+            ? fallback.maxVisibleToasts
+            : normalizeMaxVisibleToasts(
+                  defaults.maxVisibleToasts,
+                  fallback.maxVisibleToasts,
+              )
+    if (
+        duration === fallback.duration &&
+        pauseWhenQueued === fallback.pauseWhenQueued &&
+        maxVisibleToasts === fallback.maxVisibleToasts
+    ) {
+        return fallback
+    }
     return Object.freeze({
-        duration:
-            defaults.duration === undefined
-                ? fallback.duration
-                : (normalizeToastDuration(
-                      defaults.duration,
-                      fallback.duration,
-                  ) ?? fallback.duration),
-        pauseWhenQueued:
-            typeof defaults.pauseWhenQueued === 'boolean'
-                ? defaults.pauseWhenQueued
-                : (fallback.pauseWhenQueued ?? true),
-        maxVisibleToasts:
-            defaults.maxVisibleToasts === undefined
-                ? fallback.maxVisibleToasts
-                : normalizeMaxVisibleToasts(
-                      defaults.maxVisibleToasts,
-                      fallback.maxVisibleToasts,
-                  ),
+        duration,
+        pauseWhenQueued,
+        maxVisibleToasts,
     })
 }
 
 const toastProviderDefaultsRegistrars = new WeakMap<
     object,
     ToastProviderDefaultsRegistrar
+>()
+const toastVisibleSnapshotAccessors = new WeakMap<
+    object,
+    () => readonly Toast[]
+>()
+const toastByIdAccessors = new WeakMap<
+    object,
+    (id: ToastId) => Toast | undefined
 >()
 const externalProviderDefaults = new WeakMap<
     object,
@@ -157,6 +181,25 @@ export function copyToastProviderDefaultsRegistrar(
 ) {
     const register = toastProviderDefaultsRegistrars.get(source)
     if (register) toastProviderDefaultsRegistrars.set(destination, register)
+    const getVisible = toastVisibleSnapshotAccessors.get(source)
+    if (getVisible) toastVisibleSnapshotAccessors.set(destination, getVisible)
+    const getById = toastByIdAccessors.get(source)
+    if (getById) toastByIdAccessors.set(destination, getById)
+}
+
+export function getVisibleToastSnapshotAccessor(
+    store: object,
+): (() => readonly Toast[]) | undefined {
+    return toastVisibleSnapshotAccessors.get(store)
+}
+
+export function getToastById(
+    store: ToastStore,
+    id: ToastId,
+): Toast | undefined {
+    const accessor = toastByIdAccessors.get(store)
+    if (accessor) return accessor(id)
+    return store.getToastSnapshot().find((toast) => toast.id === id)
 }
 
 export function createToastStoreCore(
@@ -164,7 +207,9 @@ export function createToastStoreCore(
 ): ToastStoreCore {
     let baseToastDefaults = getInitialDefaults(options)
     let toastDefaults = baseToastDefaults
-    const toastOrder: ToastId[] = []
+    let head: ToastNode | null = null
+    let tail: ToastNode | null = null
+    const nodesById = new Map<ToastId, ToastNode>()
     const dedupeByKey = new Map<
         string,
         { id: ToastId; createdAt: number; window: number }
@@ -177,12 +222,14 @@ export function createToastStoreCore(
 
     function forgetDedupe(id: ToastId) {
         const key = dedupeKeysById.get(id)
-        if (key !== undefined && dedupeByKey.get(key)?.id === id)
-            dedupeByKey.delete(key)
-        dedupeKeysById.delete(id)
+        if (key !== undefined) {
+            if (dedupeByKey.get(key)?.id === id) dedupeByKey.delete(key)
+            dedupeKeysById.delete(id)
+        }
     }
-    const toastsById = new Map<ToastId, Toast>()
-    let snapshot: readonly Toast[] | undefined = Object.freeze([])
+
+    let snapshot: readonly Toast[] | undefined = EMPTY_SNAPSHOT
+    let visibleSnapshot: readonly Toast[] | undefined = EMPTY_SNAPSHOT
     const maxQueuedToasts =
         options.maxQueuedToasts !== undefined &&
         Number.isInteger(options.maxQueuedToasts) &&
@@ -191,16 +238,41 @@ export function createToastStoreCore(
             : undefined
     const listeners = new Set<() => void>()
     const toastTimers = new Map<ToastId, ToastTimer>()
+    let nextTimerToken = 1
     const pauseReasons = new Map<ToastId, Map<ToastPauseReason, Set<symbol>>>()
     const defaultPauseOwner = Symbol('toast-pause')
     const providerDefaults = new Map<symbol, Partial<ToastDefaults>>()
 
     function notifyListeners() {
+        const count = listeners.size
+        if (count === 0) return
+        if (count === 1) {
+            const only = listeners.values().next().value
+            only?.()
+            return
+        }
         // A subscriber may unsubscribe/resubscribe while handling this change.
         // Visit each original subscription at most once per notification.
         for (const listener of Array.from(listeners)) {
             if (listeners.has(listener)) listener()
         }
+    }
+
+    function isNodeVisible(node: ToastNode): boolean {
+        let after = 0
+        const limit = toastDefaults.maxVisibleToasts
+        for (let cur = node.next; cur && after < limit; cur = cur.next) {
+            after += 1
+        }
+        return after < limit
+    }
+
+    function getNodeFromTail(distance: number): ToastNode | null {
+        let cur = tail
+        for (let step = 0; step < distance && cur; step += 1) {
+            cur = cur.prev
+        }
+        return cur
     }
 
     function cancelAutoDismiss(id: ToastId) {
@@ -212,64 +284,81 @@ export function createToastStoreCore(
         toastTimers.delete(id)
     }
 
-    function replaceToastTiming(
-        id: ToastId,
+    function scheduleAutoDismiss(id: ToastId, delay: number) {
+        const token = nextTimerToken++
+        const handle = globalThis.setTimeout(() => {
+            if (toastTimers.get(id)?.token !== token) return
+
+            toastTimers.delete(id)
+            remove(id)
+        }, delay)
+
+        toastTimers.set(id, { handle, token })
+    }
+
+    function replaceNodeTiming(
+        node: ToastNode,
         remaining: number,
-        timerStartedAt?: number,
+        timerStartedAt: number | undefined,
+        visible: boolean,
     ) {
-        const toast = toastsById.get(id)
+        const toast = node.toast
         if (
-            !toast ||
-            (toast.remaining === remaining &&
-                toast.timerStartedAt === timerStartedAt)
+            toast.remaining === remaining &&
+            toast.timerStartedAt === timerStartedAt
         )
             return
-        toastsById.set(
-            id,
-            Object.freeze({ ...toast, remaining, timerStartedAt }),
-        )
+        node.toast = Object.freeze({ ...toast, remaining, timerStartedAt })
         snapshot = undefined
+        if (visible) visibleSnapshot = undefined
+    }
+
+    function startNodeTimer(node: ToastNode, visible: boolean) {
+        const startedAt = Date.now()
+        scheduleAutoDismiss(node.id, node.toast.remaining)
+        replaceNodeTiming(node, node.toast.remaining, startedAt, visible)
+    }
+
+    function pauseNodeTimer(node: ToastNode, visible: boolean) {
+        const remaining = getRemainingToastTime(node.toast)
+        cancelAutoDismiss(node.id)
+        replaceNodeTiming(node, remaining, undefined, visible)
     }
 
     function syncToastTimers() {
-        const activeIds = new Set(
-            toastDefaults.pauseWhenQueued === false
-                ? toastOrder
-                : toastOrder.slice(-toastDefaults.maxVisibleToasts),
-        )
+        const runAllQueued = toastDefaults.pauseWhenQueued === false
+        const activeNodes = new Set<ToastNode>()
+        if (runAllQueued) {
+            for (let cur = head; cur; cur = cur.next) activeNodes.add(cur)
+        } else {
+            const limit = toastDefaults.maxVisibleToasts
+            let count = 0
+            for (let cur = tail; cur && count < limit; cur = cur.prev) {
+                activeNodes.add(cur)
+                count += 1
+            }
+        }
         // The default remains bounded by the visible window. Opting out of
         // queue pauses starts every timed notification at creation.
         for (const id of toastTimers.keys()) {
-            const toast = toastsById.get(id)
-            if (!toast || !activeIds.has(id) || pauseReasons.get(id)?.size) {
-                const remaining = toast && getRemainingToastTime(toast)
+            const node = nodesById.get(id)
+            if (!node) {
                 cancelAutoDismiss(id)
-                if (remaining !== undefined) replaceToastTiming(id, remaining)
+                continue
+            }
+            if (!activeNodes.has(node) || pauseReasons.has(id)) {
+                pauseNodeTimer(node, isNodeVisible(node))
             }
         }
-        for (const id of activeIds) {
-            const toast = toastsById.get(id)
-            if (!toast) continue
-            const shouldRun =
-                toast.duration > 0 && !pauseReasons.get(toast.id)?.size
-            const timer = toastTimers.get(toast.id)
+        for (const node of activeNodes) {
+            const toast = node.toast
+            const shouldRun = toast.duration > 0 && !pauseReasons.has(node.id)
+            const hasTimer = toastTimers.has(node.id)
 
-            if (timer && !shouldRun) {
-                const remaining = getRemainingToastTime(toast)
-                cancelAutoDismiss(toast.id)
-                replaceToastTiming(toast.id, remaining)
-            } else if (!timer && shouldRun) {
-                const startedAt = Date.now()
-                const token = Symbol(toast.id)
-                const handle = globalThis.setTimeout(() => {
-                    if (toastTimers.get(toast.id)?.token !== token) return
-
-                    toastTimers.delete(toast.id)
-                    remove(toast.id)
-                }, toast.remaining)
-
-                toastTimers.set(toast.id, { handle, token })
-                replaceToastTiming(toast.id, toast.remaining, startedAt)
+            if (hasTimer && !shouldRun) {
+                pauseNodeTimer(node, isNodeVisible(node))
+            } else if (!hasTimer && shouldRun) {
+                startNodeTimer(node, isNodeVisible(node))
             }
         }
     }
@@ -285,10 +374,19 @@ export function createToastStoreCore(
             nextDefaults = normalizeToastDefaults(defaults, nextDefaults)
         }
 
+        if (
+            nextDefaults.duration === toastDefaults.duration &&
+            nextDefaults.pauseWhenQueued === toastDefaults.pauseWhenQueued &&
+            nextDefaults.maxVisibleToasts === toastDefaults.maxVisibleToasts
+        ) {
+            return
+        }
+
         toastDefaults = nextDefaults
         // Subscribers also read defaults, so a defaults change needs a fresh
         // snapshot even when no notification itself has changed.
         snapshot = undefined
+        visibleSnapshot = undefined
         syncToastTimers()
         notifyListeners()
     }
@@ -334,11 +432,38 @@ export function createToastStoreCore(
 
     function getSnapshot() {
         if (!snapshot) {
-            snapshot = Object.freeze(
-                toastOrder.map((id) => toastsById.get(id)!),
-            )
+            if (!head) {
+                snapshot = EMPTY_SNAPSHOT
+            } else {
+                const items: Toast[] = []
+                for (let cur: ToastNode | null = head; cur; cur = cur.next) {
+                    items.push(cur.toast)
+                }
+                snapshot = Object.freeze(items)
+            }
         }
         return snapshot
+    }
+
+    function getVisibleSnapshot() {
+        if (!visibleSnapshot) {
+            if (!tail) {
+                visibleSnapshot = EMPTY_SNAPSHOT
+            } else {
+                const limit = toastDefaults.maxVisibleToasts
+                const reversed: Toast[] = []
+                for (
+                    let cur: ToastNode | null = tail;
+                    cur && reversed.length < limit;
+                    cur = cur.prev
+                ) {
+                    reversed.push(cur.toast)
+                }
+                reversed.reverse()
+                visibleSnapshot = Object.freeze(reversed)
+            }
+        }
+        return visibleSnapshot
     }
 
     function create(
@@ -346,18 +471,22 @@ export function createToastStoreCore(
         title?: string,
         type: ToastType = 'success',
         duration: number = toastDefaults.duration,
-        dedupe: ToastOptions = {},
+        dedupe?: ToastOptions,
     ): ToastId {
         const createdAt = Date.now()
-        const dedupeWindow = normalizeDedupeWindow(
-            dedupe.dedupeWindow,
-            defaultDedupeWindow,
-        )
-        if (dedupe.dedupeKey !== undefined && dedupeWindow > 0) {
-            const previous = dedupeByKey.get(dedupe.dedupeKey)
+        const dedupeKey = dedupe?.dedupeKey
+        const dedupeWindow =
+            dedupe?.dedupeWindow !== undefined
+                ? normalizeDedupeWindow(
+                      dedupe.dedupeWindow,
+                      defaultDedupeWindow,
+                  )
+                : defaultDedupeWindow
+        if (dedupeKey !== undefined && dedupeWindow > 0) {
+            const previous = dedupeByKey.get(dedupeKey)
             if (
                 previous &&
-                toastsById.has(previous.id) &&
+                nodesById.has(previous.id) &&
                 createdAt - previous.createdAt < previous.window
             )
                 return previous.id
@@ -368,99 +497,162 @@ export function createToastStoreCore(
         )
         const id =
             globalThis.crypto?.randomUUID?.() ??
-            `${Date.now()}-${Math.random().toString(36).slice(2)}`
+            `${createdAt}-${Math.random().toString(36).slice(2)}`
 
-        toastsById.set(
-            id,
-            Object.freeze({
+        const frozenAction = dedupe?.action
+            ? Object.freeze({ ...dedupe.action })
+            : undefined
+        let toast: Toast
+        if (normalizedDuration > 0) {
+            scheduleAutoDismiss(id, normalizedDuration)
+            toast = Object.freeze({
                 id,
                 content,
                 title,
-                action: dedupe.action
-                    ? Object.freeze({ ...dedupe.action })
-                    : undefined,
+                action: frozenAction,
                 type,
                 duration: normalizedDuration,
                 createdAt,
                 remaining: normalizedDuration,
-            }),
-        )
-        if (dedupe.dedupeKey !== undefined && dedupeWindow > 0) {
-            dedupeByKey.set(dedupe.dedupeKey, {
+                timerStartedAt: createdAt,
+            })
+        } else {
+            toast = Object.freeze({
+                id,
+                content,
+                title,
+                action: frozenAction,
+                type,
+                duration: normalizedDuration,
+                createdAt,
+                remaining: normalizedDuration,
+            })
+        }
+
+        const node: ToastNode = {
+            id,
+            toast,
+            prev: tail,
+            next: null,
+        }
+        if (tail) tail.next = node
+        else head = node
+        tail = node
+        nodesById.set(id, node)
+
+        if (dedupeKey !== undefined && dedupeWindow > 0) {
+            dedupeByKey.set(dedupeKey, {
                 id,
                 createdAt,
                 window: dedupeWindow,
             })
-            dedupeKeysById.set(id, dedupe.dedupeKey)
+            dedupeKeysById.set(id, dedupeKey)
         }
-        toastOrder.push(id)
-        snapshot = undefined
+
         if (
             maxQueuedToasts !== undefined &&
-            toastOrder.length > maxQueuedToasts
+            nodesById.size > maxQueuedToasts &&
+            head
         ) {
-            const evicted = toastOrder.shift()!
-            cancelAutoDismiss(evicted)
-            pauseReasons.delete(evicted)
-            forgetDedupe(evicted)
-            toastsById.delete(evicted)
+            const evicted = head
+            head = evicted.next
+            if (head) head.prev = null
+            else tail = null
+            evicted.next = null
+            cancelAutoDismiss(evicted.id)
+            pauseReasons.delete(evicted.id)
+            forgetDedupe(evicted.id)
+            nodesById.delete(evicted.id)
         }
-        syncToastTimers()
+
+        if (
+            toastDefaults.pauseWhenQueued !== false &&
+            nodesById.size > toastDefaults.maxVisibleToasts
+        ) {
+            const pushedOut = getNodeFromTail(toastDefaults.maxVisibleToasts)
+            if (pushedOut && toastTimers.has(pushedOut.id)) {
+                pauseNodeTimer(pushedOut, false)
+            }
+        }
+
+        snapshot = undefined
+        visibleSnapshot = undefined
         notifyListeners()
 
         return id
     }
 
     function update(id: ToastId, updateOptions: ToastUpdateOptions) {
-        const currentToast = toastsById.get(id)
-        if (!currentToast) return false
+        const node = nodesById.get(id)
+        if (!node) return false
+        const currentToast = node.toast
         const resetsDuration = updateOptions.duration !== undefined
-        const duration = resetsDuration
-            ? normalizeToastDuration(
-                  updateOptions.duration,
-                  toastDefaults.duration,
-              )
-            : currentToast.duration
-        const nextToast: Toast = Object.freeze({
-            ...currentToast,
-            action:
-                updateOptions.action === null
-                    ? undefined
-                    : updateOptions.action === undefined
-                      ? currentToast.action
-                      : Object.freeze({ ...updateOptions.action }),
-            content: updateOptions.content ?? currentToast.content,
-            title:
-                updateOptions.title === null
-                    ? undefined
-                    : (updateOptions.title ?? currentToast.title),
-            type: updateOptions.type ?? currentToast.type,
-            duration,
-            createdAt: resetsDuration
-                ? Math.max(Date.now(), currentToast.createdAt + 1)
-                : currentToast.createdAt,
-            remaining: resetsDuration ? duration : currentToast.remaining,
-            timerStartedAt: resetsDuration
+        const nextContent = updateOptions.content ?? currentToast.content
+        const nextTitle =
+            updateOptions.title === null
                 ? undefined
-                : currentToast.timerStartedAt,
-        })
+                : (updateOptions.title ?? currentToast.title)
+        const nextType = updateOptions.type ?? currentToast.type
+        const hasActionInput = updateOptions.action !== undefined
+        const nextAction =
+            updateOptions.action === null
+                ? undefined
+                : hasActionInput
+                  ? Object.freeze({ ...updateOptions.action! })
+                  : currentToast.action
 
         if (
             !resetsDuration &&
-            nextToast.content === currentToast.content &&
-            nextToast.title === currentToast.title &&
-            nextToast.type === currentToast.type &&
-            nextToast.action === currentToast.action
-        )
+            nextContent === currentToast.content &&
+            nextTitle === currentToast.title &&
+            nextType === currentToast.type &&
+            nextAction === currentToast.action
+        ) {
             return true
-        toastsById.set(id, nextToast)
+        }
+
+        const visible = isNodeVisible(node)
+        let duration = currentToast.duration
+        let createdAt = currentToast.createdAt
+        let remaining = currentToast.remaining
+        let timerStartedAt = currentToast.timerStartedAt
+
+        if (resetsDuration) {
+            cancelAutoDismiss(id)
+            duration = normalizeToastDuration(
+                updateOptions.duration,
+                toastDefaults.duration,
+            )
+            const now = Date.now()
+            createdAt = Math.max(now, currentToast.createdAt + 1)
+            remaining = duration
+            if (
+                duration > 0 &&
+                !pauseReasons.has(id) &&
+                (toastDefaults.pauseWhenQueued === false || visible)
+            ) {
+                scheduleAutoDismiss(id, duration)
+                timerStartedAt = now
+            } else {
+                timerStartedAt = undefined
+            }
+        }
+
+        node.toast = Object.freeze({
+            ...currentToast,
+            action: nextAction,
+            content: nextContent,
+            title: nextTitle,
+            type: nextType,
+            duration,
+            createdAt,
+            remaining,
+            timerStartedAt,
+        })
         snapshot = undefined
+        if (visible) visibleSnapshot = undefined
 
-        if (resetsDuration) cancelAutoDismiss(id)
-
-        syncToastTimers()
         notifyListeners()
-
         return true
     }
 
@@ -469,10 +661,39 @@ export function createToastStoreCore(
         pauseReasons.delete(id)
         forgetDedupe(id)
 
-        if (!toastsById.delete(id)) return
-        toastOrder.splice(toastOrder.indexOf(id), 1)
+        const node = nodesById.get(id)
+        if (!node) return
+        const wasVisible = isNodeVisible(node)
+
+        if (node.prev) node.prev.next = node.next
+        else head = node.next
+        if (node.next) node.next.prev = node.prev
+        else tail = node.prev
+        node.prev = null
+        node.next = null
+        nodesById.delete(id)
+
         snapshot = undefined
-        syncToastTimers()
+        if (wasVisible) {
+            visibleSnapshot = undefined
+            if (
+                toastDefaults.pauseWhenQueued !== false &&
+                nodesById.size >= toastDefaults.maxVisibleToasts
+            ) {
+                const promoted = getNodeFromTail(
+                    toastDefaults.maxVisibleToasts - 1,
+                )
+                if (
+                    promoted &&
+                    promoted.toast.duration > 0 &&
+                    !pauseReasons.has(promoted.id) &&
+                    !toastTimers.has(promoted.id)
+                ) {
+                    startNodeTimer(promoted, true)
+                }
+            }
+        }
+
         notifyListeners()
     }
 
@@ -482,37 +703,64 @@ export function createToastStoreCore(
         paused: boolean,
         owner = defaultPauseOwner,
     ) {
-        if (!toastsById.has(id)) return
+        const node = nodesById.get(id)
+        if (!node) return
 
-        const reasons =
-            pauseReasons.get(id) ?? new Map<ToastPauseReason, Set<symbol>>()
-        const owners = reasons.get(reason) ?? new Set<symbol>()
-        if (owners.has(owner) === paused) return
+        if (!paused) {
+            const reasons = pauseReasons.get(id)
+            if (!reasons) return
+            const owners = reasons.get(reason)
+            if (!owners || !owners.delete(owner)) return
+            if (owners.size === 0) reasons.delete(reason)
+            if (reasons.size === 0) {
+                pauseReasons.delete(id)
+                if (node.toast.duration > 0 && !toastTimers.has(id)) {
+                    const visible = isNodeVisible(node)
+                    if (toastDefaults.pauseWhenQueued === false || visible) {
+                        startNodeTimer(node, visible)
+                    }
+                }
+            }
+            notifyListeners()
+            return
+        }
 
-        if (paused) owners.add(owner)
-        else owners.delete(owner)
+        let reasons = pauseReasons.get(id)
+        const wasPaused = reasons !== undefined && reasons.size > 0
+        if (!reasons) {
+            reasons = new Map()
+            pauseReasons.set(id, reasons)
+        }
+        let owners = reasons.get(reason)
+        if (!owners) {
+            owners = new Set()
+            reasons.set(reason, owners)
+        } else if (owners.has(owner)) {
+            return
+        }
+        owners.add(owner)
 
-        if (owners.size > 0) reasons.set(reason, owners)
-        else reasons.delete(reason)
-
-        if (reasons.size > 0) pauseReasons.set(id, reasons)
-        else pauseReasons.delete(id)
-
-        syncToastTimers()
+        if (!wasPaused && toastTimers.has(id)) {
+            pauseNodeTimer(node, isNodeVisible(node))
+        }
         notifyListeners()
     }
 
     function clearAll() {
-        toastTimers.forEach(({ handle }) => globalThis.clearTimeout(handle))
+        for (const { handle } of toastTimers.values()) {
+            globalThis.clearTimeout(handle)
+        }
         toastTimers.clear()
         pauseReasons.clear()
         dedupeByKey.clear()
         dedupeKeysById.clear()
 
-        if (toastOrder.length === 0) return
-        toastOrder.length = 0
-        toastsById.clear()
-        snapshot = Object.freeze([])
+        if (!head) return
+        head = null
+        tail = null
+        nodesById.clear()
+        snapshot = EMPTY_SNAPSHOT
+        visibleSnapshot = EMPTY_SNAPSHOT
         notifyListeners()
     }
 
@@ -536,7 +784,9 @@ export function createToastStoreCore(
     }
 
     toastProviderDefaultsRegistrars.set(core, registerProviderDefaults)
+    toastVisibleSnapshotAccessors.set(core, getVisibleSnapshot)
+    toastByIdAccessors.set(core, (id) => nodesById.get(id)?.toast)
     return core
 }
 
-export const defaultToastStore = createToastStoreCore()
+export const defaultToastStore = /*#__PURE__*/ createToastStoreCore()

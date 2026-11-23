@@ -6,8 +6,9 @@ import {
     subscribeToastFocusScope,
 } from '../../../lib/ToastFocusScope/toastFocusScope.ts'
 
+function noop() {}
 function subscribe() {
-    return () => {}
+    return noop
 }
 function getClientSnapshot() {
     return true

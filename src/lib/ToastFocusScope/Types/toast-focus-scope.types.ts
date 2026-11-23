@@ -3,4 +3,5 @@ export interface ToastFocusScopeRegistry {
     listeners: Set<() => void>
     target: HTMLElement | null
     observer: MutationObserver | null
+    observedNodes: Set<HTMLElement>
 }

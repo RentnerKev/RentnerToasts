@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type PointerEvent } from 'react'
+import { useCallback, useLayoutEffect, useRef, type PointerEvent } from 'react'
 import {
     createSpringFrames,
     getCloseIconFrames,
@@ -7,80 +7,137 @@ import {
 
 export function useToastActionLogic(animated: boolean) {
     const button = useRef<HTMLButtonElement | null>(null)
+    const iconRef = useRef<HTMLElement | null>(null)
     const scaleAnimation = useRef<Animation | null>(null)
     const iconAnimation = useRef<Animation | null>(null)
     const hovered = useRef(false)
 
-    function animateScale(scale: number) {
-        const node = button.current
-        if (!node || !animated) return
-        const current = new DOMMatrix(getComputedStyle(node).transform).a
-        scaleAnimation.current?.cancel()
-        node.style.transform = `scale(${scale})`
-        if (typeof node.animate !== 'function') return
-        scaleAnimation.current = node.animate(
-            createSpringFrames(
-                current,
-                scale,
-                550,
-                30,
-                (value) => `scale(${value})`,
-            ),
-            { duration: 800, easing: 'linear' },
-        )
-    }
+    const getIcon = useCallback(
+        (node: HTMLButtonElement): HTMLElement | null => {
+            const cached = iconRef.current
+            if (cached && cached.isConnected && node.contains(cached))
+                return cached
+            const found = node.querySelector<HTMLElement>(
+                '[data-toast-close-icon]',
+            )
+            iconRef.current = found
+            return found
+        },
+        [],
+    )
 
-    function animateIcon(angle: number) {
-        const node = button.current?.querySelector<HTMLElement>(
-            '[data-toast-close-icon]',
-        )
-        if (!node || !animated) return
-        const matrix = new DOMMatrix(getComputedStyle(node).transform)
-        const current = (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI
-        iconAnimation.current?.cancel()
-        node.style.transform = `rotate(${angle}deg)`
-        if (typeof node.animate !== 'function') return
-        iconAnimation.current = node.animate(
-            getCloseIconFrames(current, angle),
-            { duration: CLOSE_ICON_SPRING_DURATION, easing: 'linear' },
-        )
-    }
+    const animateScale = useCallback(
+        (scale: number) => {
+            const node = button.current
+            if (!node || !animated) return
+            const current = new DOMMatrix(getComputedStyle(node).transform).a
+            scaleAnimation.current?.cancel()
+            node.style.transform = `scale(${scale})`
+            if (typeof node.animate !== 'function') return
+            scaleAnimation.current = node.animate(
+                createSpringFrames(
+                    current,
+                    scale,
+                    550,
+                    30,
+                    (value) => `scale(${value})`,
+                ),
+                { duration: 800, easing: 'linear' },
+            )
+        },
+        [animated],
+    )
 
-    function handlePointerEnter(event: PointerEvent<HTMLButtonElement>) {
-        if (event.pointerType === 'touch') return
-        hovered.current = true
-        animateScale(1.15)
-        animateIcon(90)
-    }
+    const animateHoverState = useCallback(
+        (scale: number, angle: number) => {
+            const node = button.current
+            if (!node || !animated) return
+            const icon = getIcon(node)
+            // Read both computed transforms before writing either inline style.
+            const currentScale = new DOMMatrix(getComputedStyle(node).transform)
+                .a
+            let currentAngle = 0
+            if (icon) {
+                const matrix = new DOMMatrix(getComputedStyle(icon).transform)
+                currentAngle = (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI
+            }
 
-    function handlePointerLeave() {
+            scaleAnimation.current?.cancel()
+            node.style.transform = `scale(${scale})`
+            if (typeof node.animate === 'function') {
+                scaleAnimation.current = node.animate(
+                    createSpringFrames(
+                        currentScale,
+                        scale,
+                        550,
+                        30,
+                        (value) => `scale(${value})`,
+                    ),
+                    { duration: 800, easing: 'linear' },
+                )
+            }
+
+            if (icon) {
+                iconAnimation.current?.cancel()
+                icon.style.transform = `rotate(${angle}deg)`
+                if (typeof icon.animate === 'function') {
+                    iconAnimation.current = icon.animate(
+                        getCloseIconFrames(currentAngle, angle),
+                        {
+                            duration: CLOSE_ICON_SPRING_DURATION,
+                            easing: 'linear',
+                        },
+                    )
+                }
+            }
+        },
+        [animated, getIcon],
+    )
+
+    const handlePointerEnter = useCallback(
+        (event: PointerEvent<HTMLButtonElement>) => {
+            if (event.pointerType === 'touch') return
+            hovered.current = true
+            animateHoverState(1.15, 90)
+        },
+        [animateHoverState],
+    )
+
+    const handlePointerLeave = useCallback(() => {
         hovered.current = false
-        animateScale(1)
-        animateIcon(0)
-    }
+        animateHoverState(1, 0)
+    }, [animateHoverState])
+
+    const handlePointerDown = useCallback(
+        () => animateScale(0.85),
+        [animateScale],
+    )
+
+    const handlePointerUp = useCallback(
+        () => animateScale(hovered.current ? 1.15 : 1),
+        [animateScale],
+    )
 
     useLayoutEffect(() => {
         const node = button.current
         if (!animated && node) {
             node.style.transform = 'none'
-            const icon = node.querySelector<HTMLElement>(
-                '[data-toast-close-icon]',
-            )
+            const icon = getIcon(node)
             if (icon) icon.style.transform = 'none'
         }
         return () => {
             scaleAnimation.current?.cancel()
             iconAnimation.current?.cancel()
         }
-    }, [animated])
+    }, [animated, getIcon])
 
     return {
         refs: { button },
         handler: {
             handlePointerEnter,
             handlePointerLeave,
-            handlePointerDown: () => animateScale(0.85),
-            handlePointerUp: () => animateScale(hovered.current ? 1.15 : 1),
+            handlePointerDown,
+            handlePointerUp,
             handlePointerCancel: handlePointerLeave,
         },
     }

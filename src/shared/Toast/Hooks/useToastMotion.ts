@@ -7,6 +7,7 @@ import {
 import type { ToastMotionProps } from '../Types/toast-animation.types.ts'
 
 export function useToastMotion({
+    toastId = '',
     position,
     present,
     reducedMotion,
@@ -17,6 +18,7 @@ export function useToastMotion({
     const opacity = useRef<Animation | null>(null)
     const mounted = useRef(false)
     const complete = useRef(onExitComplete)
+    const idRef = useRef(toastId)
     const interrupted = useRef<{ transform: string; opacity: string } | null>(
         null,
     )
@@ -35,37 +37,32 @@ export function useToastMotion({
 
     useLayoutEffect(() => {
         complete.current = onExitComplete
-    }, [onExitComplete])
+        idRef.current = toastId
+    }, [onExitComplete, toastId])
 
     useLayoutEffect(() => {
         const element = node.current
         if (!element) return
         const initial = !mounted.current
         mounted.current = true
-        const current = !initial ? getComputedStyle(element) : null
-        const from =
-            interrupted.current?.transform ?? current?.transform ?? 'none'
-        const fromOpacity =
-            interrupted.current?.opacity ?? current?.opacity ?? '0'
+        const saved = interrupted.current
         interrupted.current = null
+        const current = !initial && !saved ? getComputedStyle(element) : null
+        const from = saved?.transform ?? current?.transform ?? 'none'
+        const fromOpacity = saved?.opacity ?? current?.opacity ?? '0'
         stopMotion()
-        element.style.transform = 'none'
-        element.style.opacity = '1'
-        element.style.touchAction = reducedMotion ? '' : 'pan-y'
+        const style = element.style
+        style.transform = 'none'
+        style.opacity = '1'
+        style.touchAction = reducedMotion ? '' : 'pan-y'
         // Text selection can start a native drag before Firefox delivers the
         // next pointer move. Match the draggable surface's selection policy.
-        element.style.userSelect = reducedMotion ? '' : 'none'
-        element.style.setProperty(
-            '-webkit-user-select',
-            reducedMotion ? '' : 'none',
-        )
-        element.style.setProperty(
-            '-webkit-touch-callout',
-            reducedMotion ? '' : 'none',
-        )
+        style.userSelect = reducedMotion ? '' : 'none'
+        style.setProperty('-webkit-user-select', reducedMotion ? '' : 'none')
+        style.setProperty('-webkit-touch-callout', reducedMotion ? '' : 'none')
 
         if (reducedMotion || typeof element.animate !== 'function') {
-            if (!present) complete.current?.()
+            if (!present) complete.current?.(idRef.current)
             return stopMotion
         }
 
@@ -95,13 +92,18 @@ export function useToastMotion({
                 [{ opacity: fromOpacity }, { opacity: 0 }],
                 { duration: 300, easing: 'ease-out', fill: 'forwards' },
             )
-            opacity.current.onfinish = () => complete.current?.()
+            opacity.current.onfinish = () => complete.current?.(idRef.current)
         }
         return () => {
-            const style = getComputedStyle(element)
-            interrupted.current = {
-                transform: style.transform,
-                opacity: style.opacity,
+            const bothFinished =
+                transform.current?.playState === 'finished' &&
+                opacity.current?.playState === 'finished'
+            if (!bothFinished) {
+                const computed = getComputedStyle(element)
+                interrupted.current = {
+                    transform: computed.transform,
+                    opacity: computed.opacity,
+                }
             }
             stopMotion()
         }

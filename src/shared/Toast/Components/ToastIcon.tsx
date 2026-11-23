@@ -1,6 +1,12 @@
+import { memo } from 'react'
 import { AlertCircle, CheckCircle, Info, TriangleAlert } from 'lucide-react'
 import type { ToastIconProps } from '../Types/toast-logic.types.ts'
-export function ToastIcon({ type, customDesign, className }: ToastIconProps) {
+
+export const ToastIcon = memo(function ToastIcon({
+    type,
+    customDesign,
+    className,
+}: ToastIconProps) {
     const Icon =
         type === 'success'
             ? CheckCircle
@@ -27,4 +33,4 @@ export function ToastIcon({ type, customDesign, className }: ToastIconProps) {
             className={className ?? customDesign?.[`${type}Icon`] ?? color}
         />
     )
-}
+})

@@ -1,5 +1,5 @@
-import { useId } from 'react'
-import { useToastSnapshot } from './useToastSnapshot.ts'
+import { useId, useMemo } from 'react'
+import { useVisibleToastSnapshot } from './useToastSnapshot.ts'
 import { resolveToastMessages } from '../../../lib/Messages/toastMessages.ts'
 import { toastPositionClasses } from '../../../config/toast-position.config.ts'
 import type {
@@ -16,24 +16,56 @@ export function useToastSurface({
     messages,
 }: ToastSurfaceProps): ToastSurfaceResult {
     const regionId = useId()
-    const { state, handler } = useToastSnapshot()
+    const { state, handler } = useVisibleToastSnapshot()
     const { state: presence, handler: presenceHandler } = useToastPresence(
         state.visibleToasts,
     )
     const reducedMotion = useToastReducedMotion()
     const region = useToastLayout(presence.items, position, reducedMotion)
+    const hasMessages = messages !== undefined
+    const regionLabel = messages?.regionLabel
+    const closeNotification = messages?.closeNotification
+    const copyError = messages?.copyError
+    const errorCopied = messages?.errorCopied
+    const resolvedMessages = useMemo(() => {
+        if (
+            !hasMessages ||
+            (regionLabel === undefined &&
+                closeNotification === undefined &&
+                copyError === undefined &&
+                errorCopied === undefined)
+        ) {
+            return resolveToastMessages(locale)
+        }
+        const overrides: Partial<ToastSurfaceResult['state']['messages']> = {}
+        if (regionLabel !== undefined) overrides.regionLabel = regionLabel
+        if (closeNotification !== undefined)
+            overrides.closeNotification = closeNotification
+        if (copyError !== undefined) overrides.copyError = copyError
+        if (errorCopied !== undefined) overrides.errorCopied = errorCopied
+        return resolveToastMessages(locale, overrides)
+    }, [
+        locale,
+        hasMessages,
+        regionLabel,
+        closeNotification,
+        copyError,
+        errorCopied,
+    ])
+
     return {
         refs: { region },
         state: {
             regionId,
             visibleToasts: state.visibleToasts,
             items: presence.items,
-            messages: resolveToastMessages(locale, messages),
+            messages: resolvedMessages,
             positionClasses:
                 toastPositionClasses[position] ??
                 toastPositionClasses['bottom-right'],
             anchorX: position.includes('right') ? 'right' : 'left',
             anchorY: position.includes('bottom') ? 'bottom' : 'top',
+            reducedMotion,
         },
         handler: {
             handleRemoveToast: handler.handleRemoveToast,

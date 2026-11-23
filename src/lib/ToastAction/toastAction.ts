@@ -3,6 +3,7 @@ import type {
     ToastId,
     ToastStore,
 } from '../ToastStore/Types/toast.types.ts'
+import { getToastById } from '../ToastStore/toastStore.ts'
 
 const runningActions = new WeakMap<ToastStore, Map<ToastId, Set<ToastAction>>>()
 
@@ -47,11 +48,7 @@ export async function runToastAction(
     const storeActions =
         runningActions.get(store) ?? new Map<ToastId, Set<ToastAction>>()
     const actions = storeActions.get(id) ?? new Set<ToastAction>()
-    if (
-        actions.has(action) ||
-        store.getToastSnapshot().find((toast) => toast.id === id)?.action !==
-            action
-    )
+    if (actions.has(action) || getToastById(store, id)?.action !== action)
         return
     actions.add(action)
     storeActions.set(id, actions)
@@ -65,8 +62,7 @@ export async function runToastAction(
         // A callback can replace the notification/action or dismiss it itself.
         if (
             action.dismissOnSuccess !== false &&
-            store.getToastSnapshot().find((toast) => toast.id === id)
-                ?.action === action
+            getToastById(store, id)?.action === action
         )
             onRemove(id)
     } catch (error) {

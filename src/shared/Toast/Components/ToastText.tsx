@@ -1,5 +1,14 @@
+import { memo, type MouseEvent } from 'react'
 import type { ToastTextProps } from '../Types/toast-logic.types.ts'
-export function ToastText({ tokens, className }: ToastTextProps) {
+
+function stopLinkPropagation(event: MouseEvent<HTMLAnchorElement>) {
+    event.stopPropagation()
+}
+
+export const ToastText = memo(function ToastText({
+    tokens,
+    className,
+}: ToastTextProps) {
     return tokens.map((token, index) =>
         token.kind === 'text' ? (
             token.value
@@ -10,10 +19,10 @@ export function ToastText({ tokens, className }: ToastTextProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className={className}
-                onClick={(event) => event.stopPropagation()}
+                onClick={stopLinkPropagation}
             >
                 {token.value}
             </a>
         ),
     )
-}
+})
