@@ -1,10 +1,14 @@
+import { memo } from 'react'
 import { useToastPortalContainer } from '../Hooks/useToastPortalContainer.ts'
 import { useToastSurface } from '../Hooks/useToastSurface.ts'
 import { CustomToast } from './CustomToast.tsx'
 import type { ToastProps } from '../Types/toast-ui.types.ts'
 import { createPortal } from 'react-dom'
 
-export function Toast({
+const BASE_REGION_CLASS =
+    'fixed z-[var(--rentner-toast-z,99999)] flex max-w-full pointer-events-none'
+
+export const Toast = memo(function Toast({
     customDesign,
     classNames,
     position,
@@ -23,6 +27,10 @@ export function Toast({
     } = useToastSurface({ position, locale, messages })
     if (portalContainer === 'body' && !container) return null
     if (state.items.length === 0) return null
+    const regionSlotClass = classNames?.region ?? 'gap-3 p-4'
+    let regionClassName = `${BASE_REGION_CLASS} ${state.positionClasses}`
+    if (regionSlotClass) regionClassName += ` ${regionSlotClass}`
+    if (portalClassName) regionClassName += ` ${portalClassName}`
     const surface = (
         <section
             ref={region}
@@ -30,14 +38,7 @@ export function Toast({
             aria-label={state.messages.regionLabel}
             aria-live="off"
             data-rentner-toast-region=""
-            className={[
-                'fixed z-[var(--rentner-toast-z,99999)] flex max-w-full pointer-events-none',
-                state.positionClasses,
-                classNames?.region ?? 'gap-3 p-4',
-                portalClassName,
-            ]
-                .filter(Boolean)
-                .join(' ')}
+            className={regionClassName}
             style={
                 portalZIndex === undefined
                     ? undefined
@@ -55,7 +56,8 @@ export function Toast({
                     className={className}
                     messages={state.messages}
                     present={present}
-                    onExitComplete={() => handler.handleExitComplete(toast.id)}
+                    reducedMotion={state.reducedMotion}
+                    onExitComplete={handler.handleExitComplete}
                 />
             ))}
         </section>
@@ -63,4 +65,4 @@ export function Toast({
     return container && typeof document !== 'undefined'
         ? createPortal(surface, container)
         : surface
-}
+})

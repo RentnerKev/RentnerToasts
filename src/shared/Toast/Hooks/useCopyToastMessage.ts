@@ -1,15 +1,11 @@
 import type { UseCopyToastMessageResult } from '../Types/toast-logic.types.ts'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Toast } from '../../../lib/ToastStore/Types/toast.types.ts'
 
 export function useCopyToastMessage(toast: Toast): UseCopyToastMessageResult {
     const [copied, setCopied] = useState(false)
     const copiedTimeoutRef = useRef<number | null>(null)
-
-    const toastMessage = useMemo(
-        () => [toast.title, toast.content].filter(Boolean).join('\n'),
-        [toast.title, toast.content],
-    )
+    const { title, content } = toast
 
     const clearCopiedTimeout = useCallback(() => {
         if (copiedTimeoutRef.current === null) return
@@ -19,6 +15,8 @@ export function useCopyToastMessage(toast: Toast): UseCopyToastMessageResult {
     }, [])
 
     const copyToastMessage = useCallback(async () => {
+        const toastMessage =
+            title && content ? `${title}\n${content}` : title || content
         try {
             await navigator.clipboard.writeText(toastMessage)
             clearCopiedTimeout()
@@ -35,7 +33,7 @@ export function useCopyToastMessage(toast: Toast): UseCopyToastMessageResult {
 
             return false
         }
-    }, [clearCopiedTimeout, toastMessage])
+    }, [clearCopiedTimeout, title, content])
 
     useEffect(() => clearCopiedTimeout, [clearCopiedTimeout])
 

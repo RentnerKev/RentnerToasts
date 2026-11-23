@@ -1,7 +1,8 @@
+import { memo } from 'react'
 import { useToastActionLogic } from '../Hooks/useToastActionLogic.ts'
 import type { ToastActionButtonProps } from '../Types/toast-animation.types.ts'
 
-export function ToastActionButton({
+export const ToastActionButton = memo(function ToastActionButton({
     animated,
     ...props
 }: ToastActionButtonProps) {
@@ -20,4 +21,4 @@ export function ToastActionButton({
             onPointerCancel={handler.handlePointerCancel}
         />
     )
-}
+})

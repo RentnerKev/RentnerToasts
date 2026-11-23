@@ -2,6 +2,19 @@ import type { ToastFocusScopeRegistry } from './Types/toast-focus-scope.types.ts
 
 const registries = new WeakMap<Document, ToastFocusScopeRegistry>()
 
+const OBSERVE_OPTIONS: MutationObserverInit = {
+    attributes: true,
+    attributeFilter: [
+        'open',
+        'hidden',
+        'inert',
+        'aria-hidden',
+        'data-state',
+        'class',
+        'style',
+    ],
+}
+
 function getRegistry(document: Document) {
     let registry = registries.get(document)
     if (!registry) {
@@ -10,35 +23,72 @@ function getRegistry(document: Document) {
             listeners: new Set(),
             target: null,
             observer: null,
+            observedNodes: new Set(),
         }
         registries.set(document, registry)
     }
     return registry
 }
 
-function isAvailable(host: HTMLElement) {
-    if (!host.isConnected) return false
-    const view = host.ownerDocument.defaultView
+interface HostInspection {
+    available: boolean
+    boundary: HTMLElement
+    inModal: boolean
+}
+
+function inspectHost(
+    host: HTMLElement,
+    styleCache: Map<HTMLElement, CSSStyleDeclaration | null>,
+): HostInspection {
+    if (!host.isConnected) {
+        return { available: false, boundary: host, inModal: false }
+    }
+    let boundary: HTMLElement | null = null
+    let inModal = false
+    // Pass 1: fast attribute-only ancestor scan; also collects dialog boundary and modal status.
     for (let node: HTMLElement | null = host; node; node = node.parentElement) {
+        const tag = node.tagName
         if (
             node.hidden ||
             node.inert ||
             node.getAttribute('aria-hidden') === 'true' ||
             node.getAttribute('data-state') === 'closed' ||
-            (node.tagName === 'DIALOG' && !node.hasAttribute('open'))
+            (tag === 'DIALOG' && !node.hasAttribute('open'))
         ) {
-            return false
+            return { available: false, boundary: host, inModal: false }
         }
-        const style = view?.getComputedStyle(node)
-        if (
-            style?.display === 'none' ||
-            style?.visibility === 'hidden' ||
-            style?.visibility === 'collapse'
-        ) {
-            return false
+        if (tag === 'DIALOG') {
+            if (!boundary) boundary = node
+            if (!inModal && node.matches(':modal')) inModal = true
+        } else if (!boundary) {
+            const role = node.getAttribute('role')
+            if (role === 'dialog' || role === 'alertdialog') boundary = node
         }
     }
-    return true
+    // Pass 2: computed visibility check with per-refresh ancestor memoization.
+    const view = host.ownerDocument.defaultView
+    if (view) {
+        for (
+            let node: HTMLElement | null = host;
+            node;
+            node = node.parentElement
+        ) {
+            let style = styleCache.get(node)
+            if (style === undefined) {
+                style = view.getComputedStyle(node)
+                styleCache.set(node, style)
+            }
+            if (
+                style &&
+                (style.display === 'none' ||
+                    style.visibility === 'hidden' ||
+                    style.visibility === 'collapse')
+            ) {
+                return { available: false, boundary: host, inModal: false }
+            }
+        }
+    }
+    return { available: true, boundary: boundary ?? host, inModal }
 }
 
 export function getToastFocusScopeBoundary(host: HTMLElement) {
@@ -59,29 +109,38 @@ function setTopLayer(host: HTMLElement | null, open: boolean) {
 }
 
 function refresh(registry: ToastFocusScopeRegistry) {
-    const activated: HTMLElement[] = []
+    const styleCache = new Map<HTMLElement, CSSStyleDeclaration | null>()
+    const inspections = new Map<HTMLElement, HostInspection>()
+    let activated: HTMLElement[] | null = null
     for (const [host, previouslyAvailable] of registry.hosts) {
-        const available = isAvailable(host)
-        registry.hosts.set(host, available)
-        if (available && !previouslyAvailable) activated.push(host)
+        const info = inspectHost(host, styleCache)
+        inspections.set(host, info)
+        registry.hosts.set(host, info.available)
+        if (info.available && !previouslyAvailable) {
+            ;(activated ??= []).push(host)
+        }
     }
-    for (const host of activated) {
-        registry.hosts.delete(host)
-        registry.hosts.set(host, true)
+    if (activated) {
+        for (let index = 0; index < activated.length; index += 1) {
+            const host = activated[index]!
+            registry.hosts.delete(host)
+            registry.hosts.set(host, true)
+        }
     }
     let target: HTMLElement | null = null
     let boundary: HTMLElement | null = null
     let modal = false
     for (const [host, available] of registry.hosts) {
         if (!available) continue
-        const inModal = Boolean(host.closest('dialog:modal'))
+        const info = inspections.get(host)!
+        const inModal = info.inModal
         // Native modal dialogs make everything outside their top layer inert.
         if (modal && !inModal) continue
         if (inModal && !modal) {
             target = null
             modal = true
         }
-        const candidate = getToastFocusScopeBoundary(host)
+        const candidate = info.boundary
         // Compare dialog boundaries: the layoutless hosts are usually siblings
         // of nested dialogs, so their own containment cannot establish nesting.
         if (
@@ -101,36 +160,42 @@ function refresh(registry: ToastFocusScopeRegistry) {
     for (const listener of registry.listeners) listener()
 }
 
-function observeHosts(document: Document, registry: ToastFocusScopeRegistry) {
+function ensureObserver(document: Document, registry: ToastFocusScopeRegistry) {
+    if (registry.observer) return registry.observer
+    const Observer = document.defaultView?.MutationObserver
+    if (!Observer) return null
+    registry.observer = new Observer(() => refresh(registry))
+    return registry.observer
+}
+
+function observeHostAncestors(
+    observer: MutationObserver,
+    observedNodes: Set<HTMLElement>,
+    host: HTMLElement,
+) {
+    // Only scope/ancestor attributes matter. Unrelated subtree mutations never
+    // trigger a document scan or a React subscription notification.
+    for (let node: HTMLElement | null = host; node; node = node.parentElement) {
+        if (observedNodes.has(node)) break
+        observedNodes.add(node)
+        observer.observe(node, OBSERVE_OPTIONS)
+    }
+}
+
+function rebuildObserver(
+    document: Document,
+    registry: ToastFocusScopeRegistry,
+) {
     registry.observer?.disconnect()
+    registry.observedNodes.clear()
     if (!registry.hosts.size) {
         registry.observer = null
         return
     }
-    const Observer = document.defaultView?.MutationObserver
-    if (!Observer) return
-    registry.observer ??= new Observer(() => refresh(registry))
-    // Only scope/ancestor attributes matter. Unrelated subtree mutations never
-    // trigger a document scan or a React subscription notification.
+    const observer = ensureObserver(document, registry)
+    if (!observer) return
     for (const host of registry.hosts.keys()) {
-        for (
-            let node: HTMLElement | null = host;
-            node;
-            node = node.parentElement
-        ) {
-            registry.observer.observe(node, {
-                attributes: true,
-                attributeFilter: [
-                    'open',
-                    'hidden',
-                    'inert',
-                    'aria-hidden',
-                    'data-state',
-                    'class',
-                    'style',
-                ],
-            })
-        }
+        observeHostAncestors(observer, registry.observedNodes, host)
     }
 }
 
@@ -138,11 +203,14 @@ export function registerToastFocusScope(host: HTMLElement) {
     const document = host.ownerDocument
     const registry = getRegistry(document)
     registry.hosts.set(host, false)
-    observeHosts(document, registry)
+    const observer = ensureObserver(document, registry)
+    if (observer) {
+        observeHostAncestors(observer, registry.observedNodes, host)
+    }
     refresh(registry)
     return () => {
         registry.hosts.delete(host)
-        observeHosts(document, registry)
+        rebuildObserver(document, registry)
         refresh(registry)
     }
 }

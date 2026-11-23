@@ -14,10 +14,11 @@ export interface ToastActionButtonProps extends ButtonHTMLAttributes<HTMLButtonE
 }
 
 export interface ToastMotionProps {
+    toastId?: string
     position: ToastPosition
     present: boolean
     reducedMotion: boolean
-    onExitComplete?: () => void
+    onExitComplete?: (id: string) => void
 }
 
 export interface ToastSwipeProps {

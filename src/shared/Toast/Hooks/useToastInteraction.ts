@@ -12,6 +12,7 @@ import type {
     ToastInteractionResult,
 } from '../Types/toast-logic.types.ts'
 import { useToastStore } from './useToastStore.ts'
+
 const returnFocusTargets = new WeakMap<Element, HTMLElement>()
 
 export function useToastInteraction({
@@ -32,54 +33,82 @@ export function useToastInteraction({
         }
         wrapper.current = node
     }, [])
+
     useEffect(() => {
         // A provider can switch store facades while keeping the same focused
         // toast DOM. Carry that display's active interaction to the new store.
-        for (const reason of ['hover', 'focus'] as const) {
-            store.setToastPauseReason(
-                id,
-                reason,
-                interactionReasons.current[reason],
-                pauseOwner,
-            )
+        const reasons = interactionReasons.current
+        if (reasons.hover) {
+            store.setToastPauseReason(id, 'hover', true, pauseOwner)
+        }
+        if (reasons.focus) {
+            store.setToastPauseReason(id, 'focus', true, pauseOwner)
         }
         return () => {
-            store.setToastPauseReason(id, 'hover', false, pauseOwner)
-            store.setToastPauseReason(id, 'focus', false, pauseOwner)
+            if (reasons.hover) {
+                store.setToastPauseReason(id, 'hover', false, pauseOwner)
+            }
+            if (reasons.focus) {
+                store.setToastPauseReason(id, 'focus', false, pauseOwner)
+            }
         }
     }, [pauseOwner, store, id])
 
-    function setInteractionPause(reason: ToastPauseReason, paused: boolean) {
-        interactionReasons.current[reason] = paused
-        store.setToastPauseReason(id, reason, paused, pauseOwner)
-    }
+    const setInteractionPause = useCallback(
+        (reason: ToastPauseReason, paused: boolean) => {
+            if (interactionReasons.current[reason] === paused) return
+            interactionReasons.current[reason] = paused
+            store.setToastPauseReason(id, reason, paused, pauseOwner)
+        },
+        [id, pauseOwner, store],
+    )
 
-    function handleFocus(event: FocusEvent<HTMLDivElement>) {
-        const region = event.currentTarget.closest(
-            '[data-rentner-toast-region]',
-        )
-        const previous = event.relatedTarget
-        if (
-            region &&
-            previous instanceof HTMLElement &&
-            !region.contains(previous)
-        ) {
-            returnFocusTargets.set(region, previous)
-        }
-        setInteractionPause('focus', true)
-    }
+    const handleMouseEnter = useCallback(
+        () => setInteractionPause('hover', true),
+        [setInteractionPause],
+    )
 
-    function handleBlur(event: FocusEvent<HTMLDivElement>) {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-            setInteractionPause('focus', false)
-        }
-    }
+    const handleMouseLeave = useCallback(
+        () => setInteractionPause('hover', false),
+        [setInteractionPause],
+    )
+
+    const handleFocus = useCallback(
+        (event: FocusEvent<HTMLDivElement>) => {
+            const region = event.currentTarget.closest(
+                '[data-rentner-toast-region]',
+            )
+            const previous = event.relatedTarget
+            if (
+                region &&
+                previous instanceof HTMLElement &&
+                !region.contains(previous)
+            ) {
+                returnFocusTargets.set(region, previous)
+            }
+            setInteractionPause('focus', true)
+        },
+        [setInteractionPause],
+    )
+
+    const handleBlur = useCallback(
+        (event: FocusEvent<HTMLDivElement>) => {
+            if (
+                !event.currentTarget.contains(
+                    event.relatedTarget as Node | null,
+                )
+            ) {
+                setInteractionPause('focus', false)
+            }
+        },
+        [setInteractionPause],
+    )
 
     return {
         refs: { setWrapperRef },
         handler: {
-            handleMouseEnter: () => setInteractionPause('hover', true),
-            handleMouseLeave: () => setInteractionPause('hover', false),
+            handleMouseEnter,
+            handleMouseLeave,
             handleFocus,
             handleBlur,
         },

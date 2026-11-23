@@ -3,6 +3,9 @@ import type { ToastPosition } from '../../../lib/ToastStore/Types/toast.types.ts
 export const TOAST_SPRING_DURATION = 800
 export const CLOSE_ICON_SPRING_DURATION = 800
 
+const SPRING_SAMPLES = 96
+const SPRING_POINTS = SPRING_SAMPLES + 1
+
 // Unit mass, zero initial velocity: the same physical spring as the old transitions.
 export function getSpringProgress(
     seconds: number,
@@ -37,6 +40,55 @@ export function getSpringProgress(
     )
 }
 
+const springCurveCache = new Map<string, Float64Array>()
+let snapBackTables: {
+    xRemaining: Float64Array
+    velocityFactor: Float64Array
+    scaleRemaining: Float64Array
+} | null = null
+
+function getSpringCurve(stiffness: number, damping: number): Float64Array {
+    const key = `${stiffness}:${damping}`
+    let curve = springCurveCache.get(key)
+    if (!curve) {
+        curve = new Float64Array(SPRING_POINTS)
+        for (let index = 0; index < SPRING_SAMPLES; index += 1) {
+            curve[index] = getSpringProgress(
+                ((index / SPRING_SAMPLES) * TOAST_SPRING_DURATION) / 1000,
+                stiffness,
+                damping,
+            )
+        }
+        curve[SPRING_SAMPLES] = 1
+        springCurveCache.set(key, curve)
+    }
+    return curve
+}
+
+function getSnapBackTables() {
+    if (!snapBackTables) {
+        const xCurve = getSpringCurve(200, 40)
+        const scaleCurve = getSpringCurve(200, 24)
+        const xRemaining = new Float64Array(SPRING_POINTS)
+        const velocityFactor = new Float64Array(SPRING_POINTS)
+        const scaleRemaining = new Float64Array(SPRING_POINTS)
+        const frequency = Math.sqrt(200)
+        const slow = -20 + frequency
+        const fast = -20 - frequency
+        const invDiff = 1 / (slow - fast)
+        for (let index = 0; index < SPRING_SAMPLES; index += 1) {
+            const seconds =
+                ((index / SPRING_SAMPLES) * TOAST_SPRING_DURATION) / 1000
+            xRemaining[index] = 1 - xCurve[index]!
+            velocityFactor[index] =
+                (Math.exp(slow * seconds) - Math.exp(fast * seconds)) * invDiff
+            scaleRemaining[index] = 1 - scaleCurve[index]!
+        }
+        snapBackTables = { xRemaining, velocityFactor, scaleRemaining }
+    }
+    return snapBackTables
+}
+
 export function createSpringFrames(
     from: number,
     to: number,
@@ -44,19 +96,16 @@ export function createSpringFrames(
     damping: number,
     format: (value: number) => string,
 ): Keyframe[] {
-    const samples = 96
-    return Array.from({ length: samples + 1 }, (_, index) => {
-        const offset = index / samples
-        const progress =
-            index === samples
-                ? 1
-                : getSpringProgress(
-                      (offset * TOAST_SPRING_DURATION) / 1000,
-                      stiffness,
-                      damping,
-                  )
-        return { offset, transform: format(from + (to - from) * progress) }
-    })
+    const curve = getSpringCurve(stiffness, damping)
+    const delta = to - from
+    const frames: Keyframe[] = []
+    for (let index = 0; index < SPRING_POINTS; index += 1) {
+        frames.push({
+            offset: index / SPRING_SAMPLES,
+            transform: format(from + delta * curve[index]!),
+        })
+    }
+    return frames
 }
 
 function toastTransform(position: ToastPosition, progress: number): string {
@@ -90,26 +139,24 @@ export function getToastSnapBackFrames(
 ): Keyframe[] {
     // Drag constraints use Motion's overdamped bounce spring, whereas scale
     // returns through the toast's own 200/24 transition.
-    const samples = 96
-    const frequency = Math.sqrt(200)
-    const slow = -20 + frequency
-    const fast = -20 - frequency
-    return Array.from({ length: samples + 1 }, (_, index) => {
-        const offset = index / samples
-        const seconds = (offset * TOAST_SPRING_DURATION) / 1000
-        const atRest = index === samples
-        const displacement = atRest
-            ? 0
-            : x * (1 - getSpringProgress(seconds, 200, 40)) +
-              (velocity *
-                  (Math.exp(slow * seconds) - Math.exp(fast * seconds))) /
-                  (slow - fast)
-        const remainingScale = atRest ? 0 : 1 - getSpringProgress(seconds)
-        return {
-            offset,
-            transform: `translate3d(${displacement}px, 0, 0) scale(${1 + (scale - 1) * remainingScale})`,
-        }
-    })
+    const { xRemaining, velocityFactor, scaleRemaining } = getSnapBackTables()
+    const scaleDelta = scale - 1
+    const frames: Keyframe[] = []
+    for (let index = 0; index < SPRING_POINTS; index += 1) {
+        const displacement =
+            index === SPRING_SAMPLES
+                ? 0
+                : x * xRemaining[index]! + velocity * velocityFactor[index]!
+        const frameScale =
+            index === SPRING_SAMPLES
+                ? 1
+                : 1 + scaleDelta * scaleRemaining[index]!
+        frames.push({
+            offset: index / SPRING_SAMPLES,
+            transform: `translate3d(${displacement}px, 0, 0) scale(${frameScale})`,
+        })
+    }
+    return frames
 }
 
 export function getCloseIconFrames(from: number, to: number): Keyframe[] {

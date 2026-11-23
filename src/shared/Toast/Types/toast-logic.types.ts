@@ -49,6 +49,7 @@ export interface ToastSurfaceResult {
         anchorX: 'left' | 'right'
         anchorY: 'top' | 'bottom'
         items: ToastPresenceItem[]
+        reducedMotion: boolean
     }
     handler: {
         handleRemoveToast: (id: ToastId) => void
@@ -60,21 +61,28 @@ export interface ToastSurfaceResult {
 export type CustomToastComponentProps = CustomToastProps & {
     ref?: Ref<HTMLDivElement>
     present?: boolean
-    onExitComplete?: () => void
+    reducedMotion?: boolean
+    onExitComplete?: (id: string) => void
 }
 
 export interface CustomToastLogicResult {
-    state: Omit<
-        UseCustomToastLogicResult['state'],
-        'toastIcon' | 'parsedTitle' | 'parsedContent'
-    > & {
+    state: {
         actionPending: boolean
+        copied: boolean
+        wrapperClasses: string
+        progressClasses: string
         parsedTitle: ToastTextToken[]
         parsedContent: ToastTextToken[]
         linkClassName: string
+        dragEnabled: boolean
     }
-    handler: UseCustomToastLogicResult['handler'] & {
+    handler: {
         handleAction: () => void
+        handleCopyError: MouseEventHandler<HTMLButtonElement>
+        handleMouseEnter: () => void
+        handleMouseLeave: () => void
+        handleFocus: UseCustomToastLogicResult['handler']['handleFocus']
+        handleBlur: UseCustomToastLogicResult['handler']['handleBlur']
         handlePointerDown: PointerEventHandler<HTMLDivElement>
         handlePointerMove: PointerEventHandler<HTMLDivElement>
         handlePointerUp: PointerEventHandler<HTMLDivElement>

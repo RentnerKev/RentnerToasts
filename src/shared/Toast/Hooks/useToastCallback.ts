@@ -7,7 +7,11 @@ import {
 } from '../../../lib/ToastAction/toastAction.ts'
 import { useToastStore } from './useToastStore.ts'
 
-function getServerSnapshot() {
+function noop() {}
+function noopSubscribe() {
+    return noop
+}
+function getFalseSnapshot() {
     return false
 }
 
@@ -17,6 +21,7 @@ export function useToastCallback(
     onRemove: (id: string) => void,
 ) {
     const store = useToastStore()
+    const hasAction = toast.action !== undefined
     const subscribe = useCallback(
         (listener: () => void) => subscribeToToastActions(store, listener),
         [store],
@@ -26,16 +31,16 @@ export function useToastCallback(
         [store, toast.id, toast.action],
     )
     const actionPending = useSyncExternalStore(
-        subscribe,
-        getSnapshot,
-        getServerSnapshot,
+        hasAction ? subscribe : noopSubscribe,
+        hasAction ? getSnapshot : getFalseSnapshot,
+        getFalseSnapshot,
     )
 
-    function handleAction() {
+    const handleAction = useCallback(() => {
         const action = toast.action
         if (!present || !action) return
         void runToastAction(store, toast.id, action, onRemove)
-    }
+    }, [onRemove, present, store, toast.action, toast.id])
 
     return {
         state: { actionPending },
